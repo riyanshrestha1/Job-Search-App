@@ -19,6 +19,9 @@
 @media(max-width:580px){.sidebar{position:relative;width:100%;padding:17px 18px 9px;height:auto;display:block}.brand{justify-content:flex-start;font-size:17px}.brand>span{display:block}.brand span small{display:none}.brand-mark{width:29px;height:29px;border-radius:9px}.sidebar nav{display:flex;gap:5px;margin-top:16px;overflow:auto}.sidebar nav button{padding:9px 10px;gap:7px;white-space:nowrap;flex:1;font-size:10px;border-radius:7px}.sidebar nav button svg{width:14px;height:14px}.sidebar nav button>span:not(.nav-arrow){display:block}.sidebar nav .nav-arrow{display:none}.sidebar-foot{display:none}.workspace{margin-left:0}.topbar{height:54px;padding:0 19px}.breadcrumb{font-size:10px;gap:8px}.connection span{display:none}.connection:after{content:'Local app';font-size:10px}main{padding:25px 18px 30px}.page-heading{margin-bottom:20px}.page-heading h1{font-size:25px}.page-heading p{font-size:11px}.hero{padding:25px;min-height:200px}.hero-copy{max-width:100%}.hero h2{font-size:26px;max-width:260px}.hero p{max-width:260px;font-size:11px}.hero-art{display:none}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:25px}.metric{min-height:98px;padding:14px 16px}.metric-top{font-size:10px}.metric-icon{display:grid;width:24px;height:24px}.metric-value{font-size:23px;margin-top:6px}.metric-value.text-value{font-size:14px;margin-top:12px}.metric-foot{font-size:8px}.section-label span{font-size:9px}.card{padding:20px}.table-card{padding:0}.scan-actions{gap:15px}.scan-actions>div{margin-left:auto}.source-strip{gap:16px 20px;padding:15px}.source-strip span{width:100%;text-align:center}.page-footer{font-size:8px}.page-footer span:last-child{display:none}.filter-card .field{min-width:100%}.filter-card .row>.p{width:100%}.filter-card .check-label{margin:4px 0}.job{grid-template-columns:47px 1fr;gap:14px;padding:18px}.score{width:46px;height:49px;border-radius:11px;font-size:19px}.score small{font-size:8px}.job h3{font-size:14px}.job .mute{font-size:10px}.chip{font-size:8px;padding:3px 6px}.dataset-box .row{flex-direction:column;align-items:stretch}.dataset-box .field{min-width:0}.table-title{padding:17px}td,th{padding:13px}.eyebrow{font-size:9px}}
 @media(max-width:580px){.sidebar nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible;gap:4px}.sidebar nav button{min-width:0;flex-direction:column;gap:5px;padding:9px 3px;font-size:9px}.sidebar nav button svg{width:16px;height:16px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.resume-status{margin:0 0 14px;padding:13px 15px;border:1px solid #dce5d5;background:#f7faf2;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12px;line-height:1.6;color:#4f6542}
+.resume-status strong{display:block;font-size:12px}.resume-status p{margin:3px 0 0;font-size:11px;color:inherit}.resume-status[data-state="success"]{background:#ecf8ef;border-color:#a8d1b2;color:#215f34}.resume-status[data-state="error"]{background:#fff1ef;border-color:#edb9ae;color:#983e2f}.resume-status[data-state="uploading"]{background:#eff5ff;border-color:#bfd1ee;color:#355c8c}.resume-status[data-state="selected"]{background:#fff9e9;border-color:#e9d798;color:#806321}.resume-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;background:#eef1e9;color:#75816c;margin-top:6px}.resume-badge[data-saved="true"]{background:#dff2e3;color:#27683b}.resume-next{margin:10px 0 0;font-size:11px;color:#58774a}#rprof{font-size:11px}#rprof .resume-detail{display:block;margin:5px 0 8px;line-height:1.7}.resume-status[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -70,11 +73,12 @@
    </div>
    <div class="section-label"><h2>Make it personal</h2><span>Two steps to better opportunities</span></div>
    <div class="setup-grid">
-    <div class="card"><div class="card-heading"><span class="step">01</span><div><h3>Start with your story</h3><p>Add your resume to find roles that fit your experience.</p></div></div>
+    <div class="card"><div class="card-heading"><span class="step">01</span><div><h3>Start with your story</h3><p>Add your resume to find roles that fit your experience.</p><span id="resume-badge" class="resume-badge">Checking saved resume…</span></div></div>
+     <div id="resume-status" class="resume-status" role="status" aria-live="polite" aria-atomic="true" data-state="idle"><div><strong id="resume-status-title">Checking your saved resume…</strong><p id="resume-status-message">We’ll show whether a resume is already saved in your app.</p></div></div>
      <label class="upload-area"><div class="upload-icon"><svg><use href="#i-upload"/></svg></div><strong><span>Choose a file</span> or drop it here</strong><small id="resume-filename">PDF, DOCX or TXT · Select a file to begin</small><input type="file" id="rfile" accept=".pdf,.docx,.txt,.md" aria-label="Choose your resume"></label>
-     <button class="p wide" onclick="uploadResume()">Upload resume <svg class="button-icon"><use href="#i-arrow"/></svg></button>
+     <button id="resume-upload-button" class="p wide" onclick="uploadResume()">Upload resume <svg class="button-icon"><use href="#i-arrow"/></svg></button>
      <p class="resume-note"><svg><use href="#i-lock"/></svg>Your resume stays on your device.</p>
-     <details><summary>Prefer to paste your resume instead?</summary><div class="paste-area"><label class="field-label" for="rtext">Resume text</label><textarea id="rtext" placeholder="Paste your experience, skills and education here…"></textarea><button class="s wide" onclick="uploadResume(true)">Save resume text</button></div></details><div id="rprof" style="display:none"></div>
+     <details><summary>Prefer to paste your resume instead?</summary><div class="paste-area"><label class="field-label" for="rtext">Resume text</label><textarea id="rtext" placeholder="Paste your experience, skills and education here…"></textarea><button id="resume-paste-button" class="s wide" onclick="uploadResume(true)">Save resume text</button></div></details><div id="rprof" style="display:none"></div>
     </div>
     <div class="card"><div class="card-heading"><span class="step">02</span><div><h3>Find your opportunities</h3><p>Choose where to look. We’ll take it from here.</p></div></div>
      <div class="form-grid"><div><label class="field-label" for="s_n">Employers to explore</label><input id="s_n" type="number" min="1" value="1000"></div><div><label class="field-label" for="s_ind">Industry</label><select id="s_ind"><option value="">Any industry</option></select></div><div><label class="field-label" for="s_state">Employer state</label><select id="s_state"><option value="">Any state</option></select></div><div><label class="field-label" for="s_min">Minimum H-1B approvals</label><input id="s_min" type="number" min="0" value="3"></div></div>
@@ -117,21 +121,91 @@ async function api(u,body,form){const o=body===undefined?{}:form?{method:'POST',
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,section').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#'+b.dataset.t).classList.add('on');
  if(b.dataset.t=='recs')loadRecs();if(b.dataset.t=='emps')loadEmps();if(b.dataset.t=='data')loadData()});
 let facetsDone='';
-async function status(){const s=await api('/api/status');
- $('#k_employers').textContent=s.employers.toLocaleString();$('#k_boards').textContent=s.boards.toLocaleString();$('#k_jobs').textContent=s.jobs.toLocaleString();$('#k_resume').textContent=s.resume?'Ready to match':'Add your resume';
+let resumeBusy=false, resumeRevision=0, savedResumeProfile=null, resumeFeedback='initial';
+async function status(){const revision=resumeRevision;const s=await api('/api/status');
+ $('#k_employers').textContent=s.employers.toLocaleString();$('#k_boards').textContent=s.boards.toLocaleString();$('#k_jobs').textContent=s.jobs.toLocaleString();if(revision===resumeRevision&&!resumeBusy)renderResumeProfile(s.resume);
  $('#connection').textContent='Connected to your local app';
  $('#stat').textContent=`${s.employers.toLocaleString()} employers · ${s.boards.toLocaleString()} job boards · ${s.jobs.toLocaleString()} openings`;
  if(facetsDone!==JSON.stringify(s.facets)){facetsDone=JSON.stringify(s.facets);
  for(const id of ['#s_state','#e_state','#r_state','#s_ind','#e_ind']){const select=$(id),value=select.value;select.dataset.previous=value;select.replaceChildren(new Option(id==='#r_state'?'Anywhere':'Any',''));}
 for(const id of ['#s_state','#e_state','#r_state'])s.facets.states.forEach(x=>$(id).add(new Option(x,x)));
   for(const id of ['#s_ind','#e_ind'])s.facets.industries.forEach(x=>$(id).add(new Option(x,x.split(' ')[0])));for(const id of ['#s_state','#e_state','#r_state','#s_ind','#e_ind']){const select=$(id);if([...select.options].some(o=>o.value===select.dataset.previous))select.value=select.dataset.previous;}}
- if(!s.resume){$('#rprof').style.display='none';}if(s.resume){$('#rprof').style.display='block';$('#rprof').innerHTML=`<b>Resume loaded</b> · ~${s.resume.years} yrs experience<br>`+s.resume.skills.map(x=>`<span class=chip>${esc(x)}</span>`).join('')}
+
  const c=s.scan;if(c.total){$('#scan').style.display='block';$('#scanbar').style.width=(100*c.done/c.total)+'%';
   $('#scantxt').textContent=`${c.running?(c.cancel?'Stopping':'Scanning'):(c.cancel?'Stopped':'Done')}: ${c.done}/${c.total} employers · ${c.boards} boards found · ${c.jobs} openings`+(c.error?' · error: '+c.error:'')}
  return s}
-async function uploadResume(pasted){try{const fd=new FormData();let j;
- if(pasted)j=await api('/api/resume',{text:$('#rtext').value});else{const f=$('#rfile').files[0];if(!f){alert('Choose a resume file first.');return;}fd.append('file',f);j=await api('/api/resume',fd,true)}
- status()}catch(e){alert(e.message)}}
+// Resume feedback is based on server-confirmed saves, never just file selection.
+function setResumeFeedback(state,title,message){
+ resumeFeedback=state;
+ $('#resume-status').dataset.state=state;
+ $('#resume-status-title').textContent=title;
+ $('#resume-status-message').textContent=message;
+ if(state==='success'||state==='error')$('#resume-status').scrollIntoView({block:'center'});
+}
+function renderResumeProfile(profile){
+ savedResumeProfile=profile||null;
+ const saved=!!profile,badge=$('#resume-badge'),panel=$('#rprof');
+ badge.textContent=saved?'✓ Resume uploaded':'No resume uploaded';
+ badge.dataset.saved=String(saved);
+ $('#k_resume').textContent=saved?'Resume uploaded':'Not uploaded yet';
+ panel.replaceChildren();
+ panel.style.display=saved?'block':'none';
+ if(saved){
+  const title=document.createElement('b');title.textContent='Saved resume · ready for matching';panel.append(title);
+  const details=document.createElement('span');details.className='resume-detail';
+  details.textContent=(Number(profile.chars)||0).toLocaleString()+' characters read · '+(profile.skills||[]).length+' skills detected';
+  panel.append(details);
+  for(const skill of profile.skills||[]){const chip=document.createElement('span');chip.className='chip';chip.textContent=skill;panel.append(chip);}
+  const next=document.createElement('p');next.className='resume-next';next.textContent='Next: start an employer scan, then open Matches to see available roles.';panel.append(next);
+ }
+ if(resumeFeedback==='initial'||resumeFeedback==='idle'||resumeFeedback==='saved'){
+  setResumeFeedback(saved?'saved':'idle',saved?'Your resume is saved':'No resume uploaded yet',
+   saved?'Your app has a saved resume and will use it to rank job matches.':'Choose a file and click Upload resume, or paste your resume text below.');
+ }
+}
+function setResumeBusy(busy,pasted){
+ resumeBusy=busy;
+ for(const id of ['#resume-upload-button','#resume-paste-button','#rfile','#rtext'])$(id).disabled=busy;
+ $('#resume-upload-button').textContent=busy&&!pasted?'Uploading and reading…':'Upload resume';
+ $('#resume-paste-button').textContent=busy&&pasted?'Saving resume text…':'Save resume text';
+ $('#resume-status').setAttribute('aria-busy',String(busy));
+}
+function onResumeSelected(){
+ if(resumeBusy)return;
+ const file=$('#rfile').files[0];
+ $('#resume-filename').textContent=file?file.name:'PDF, DOCX or TXT · Select a file to begin';
+ if(file)setResumeFeedback('selected','File selected — not uploaded yet',file.name+' is selected. Click Upload resume to save it.'+(savedResumeProfile?' Your previously saved resume is still active.':''));
+ else{resumeFeedback='initial';renderResumeProfile(savedResumeProfile);}
+}
+async function uploadResume(pasted=false){
+ if(resumeBusy)return;
+ let body,form=false,label;
+ if(pasted){
+  const text=$('#rtext').value.trim();
+  if(text.length<50){setResumeFeedback('error','Resume not saved','Paste at least 50 characters of resume text and try again.'+(savedResumeProfile?' Your previously saved resume is still active.':''));return;}
+  body={text};label='Your pasted resume';
+ }else{
+  const file=$('#rfile').files[0];
+  if(!file){setResumeFeedback('error','No file selected','Choose a PDF, DOCX or TXT resume, then click Upload resume.');return;}
+  body=new FormData();body.append('file',file);form=true;label=file.name;
+ }
+ resumeRevision++;
+ setResumeBusy(true,pasted);
+ setResumeFeedback('uploading',pasted?'Saving your resume…':'Uploading and reading your resume…','Please wait for confirmation before continuing.');
+ try{
+  const profile=await api('/api/resume',body,form);
+  if(profile.error)throw new Error(profile.error);
+  if(!Array.isArray(profile.skills)||!Number.isFinite(profile.chars)||profile.chars<50)throw new Error('The server did not confirm a readable saved resume. Please try again.');
+  renderResumeProfile(profile);
+  setResumeFeedback('success',pasted?'✓ Resume text saved successfully':'✓ Resume uploaded successfully',
+   label+' was saved. '+profile.chars.toLocaleString()+' characters read. You’re ready to scan employers and view Matches.');
+ }catch(error){
+  setResumeFeedback('error','Resume upload failed',error.message+(savedResumeProfile?' Saved resume details are shown below. Refresh to confirm which resume is active.':' No new resume was confirmed.'));
+ }finally{
+  resumeRevision++;
+  setResumeBusy(false,pasted);
+ }
+}
 async function startScan(){try{const topN=Number($('#s_n').value),minimum=Number($('#s_min').value);
  if(!Number.isInteger(topN)||topN<1)throw new Error('Choose a positive whole number of employers.');
  if(!Number.isInteger(minimum)||minimum<0)throw new Error('Minimum approvals must be zero or a positive whole number.');
@@ -191,7 +265,7 @@ async function uploadData(){const f=$('#d_file').files[0];if(!f)return;const fd=
 async function refreshStatus(){try{await status()}catch(e){$('#connection').textContent='Waiting for the local app';$('#stat').textContent=e.message;}}
 refreshStatus();setInterval(refreshStatus,5000);
 document.querySelectorAll('nav button').forEach(button=>button.addEventListener('click',()=>{const names={setup:'Your workspace',recs:'Recommendations',emps:'Employer directory',data:'Data library'};$('#page-title').textContent=names[button.dataset.t];}));
-$('#rfile').addEventListener('change',()=>{$('#resume-filename').textContent=$('#rfile').files[0]?.name||'PDF, DOCX or TXT · Select a file to begin';});
+$('#rfile').addEventListener('change',onResumeSelected);
 $('#e_q').addEventListener('keydown',e=>{if(e.key==='Enter')loadEmps();});
 
 
