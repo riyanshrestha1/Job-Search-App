@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>H-1B Job Finder</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#14181f;--mute:#667085;--line:#e4e7ec;--acc:#2457d6;--ok:#12805c;--warn:#b54708;--bad:#b42318}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1116;--card:#171b22;--ink:#e8ebf0;--mute:#98a2b3;--line:#262c36;--acc:#6e9bff;--ok:#3ccf9a;--warn:#f5a45d;--bad:#ff8a80}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:18px 24px;border-bottom:1px solid var(--line);background:var(--card);display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+h1{font-size:18px;margin:0}nav{display:flex;gap:4px}nav button{background:none;border:0;padding:8px 14px;border-radius:8px;color:var(--mute);font:inherit;cursor:pointer}
+nav button.on{background:var(--bg);color:var(--ink);font-weight:600}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}section{display:none}section.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}label{font-size:12px;color:var(--mute);display:block;margin-bottom:3px}
+input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+textarea{width:100%;min-height:90px}button.p{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:9px 16px;font:inherit;cursor:pointer}
+button.s{background:none;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:8px 12px;font:inherit;cursor:pointer}
+.mute{color:var(--mute)}.chip{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--bg);border:1px solid var(--line);margin:2px 4px 2px 0}
+.chip.ok{color:var(--ok);border-color:var(--ok)}.chip.warn{color:var(--warn);border-color:var(--warn)}
+.job{display:grid;grid-template-columns:64px 1fr;gap:14px}.score{font-size:22px;font-weight:700;text-align:center;line-height:1}
+.score small{display:block;font-size:11px;font-weight:400;color:var(--mute);margin-top:4px}
+.job h3{margin:0 0 2px;font-size:16px}.job h3 a{color:var(--acc);text-decoration:none}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}th{color:var(--mute);font-weight:500;font-size:12px}
+.bar{height:6px;background:var(--line);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--acc)}
+.msg{padding:10px 12px;border-radius:8px;background:var(--bg);margin-top:10px;font-size:14px}
+@media(max-width:600px){.job{grid-template-columns:48px 1fr}}
+</style></head><body>
+<header><h1>H-1B Job Finder</h1>
+<nav id="nav"><button data-t="setup" class="on">1 · Resume &amp; scan</button><button data-t="recs">2 · Recommendations</button>
+<button data-t="emps">Employers</button><button data-t="data">USCIS data</button></nav>
+<span id="stat" class="mute" style="margin-left:auto;font-size:13px"></span></header>
+<main>
+
+<section id="setup" class="on">
+ <div class="card"><b>Resume</b>
+  <p class="mute" style="margin:4px 0 10px">PDF, DOCX or TXT. It stays in your local database; nothing is sent anywhere except the public job-board APIs.</p>
+  <div class="row"><input type="file" id="rfile" accept=".pdf,.docx,.txt,.md"><button class="p" onclick="uploadResume()">Upload</button></div>
+  <details style="margin-top:10px"><summary class="mute">…or paste text</summary><textarea id="rtext"></textarea><button class="s" onclick="uploadResume(true)">Save pasted text</button></details>
+  <div id="rprof" class="msg" style="display:none"></div></div>
+ <div class="card"><b>Scan employers for open roles</b>
+  <p class="mute" style="margin:4px 0 10px">Employers are ranked by H-1B volume. Each one is matched to a public Greenhouse / Lever / Ashby / SmartRecruiters job board. Misses are cached, so rescans are fast.</p>
+  <div class="row">
+   <div><label>Top N employers</label><input id="s_n" type="number" value="1000" style="width:100px"></div>
+   <div><label>Industry (NAICS prefix)</label><select id="s_ind"><option value="">Any</option></select></div>
+   <div><label>State</label><select id="s_state"><option value="">Any</option></select></div>
+   <div><label>Min approvals</label><input id="s_min" type="number" value="3" style="width:90px"></div>
+   <label style="display:flex;gap:6px;align-items:center;margin:0 0 8px"><input type="checkbox" id="s_ref">force refresh</label>
+   <button class="p" onclick="startScan()">Start scan</button><button class="s" onclick="api('/api/scan/cancel',{})">Stop</button></div>
+  <div id="scan" class="msg" style="display:none"><div class="bar"><i id="scanbar" style="width:0"></i></div><div id="scantxt" style="margin-top:6px"></div></div></div>
+</section>
+
+<section id="recs">
+ <div class="card"><div class="row">
+  <div><label>Title keywords (comma separated)</label><input id="r_kw" placeholder="data engineer, ml engineer" style="width:260px"></div>
+  <div><label>State (or remote)</label><select id="r_state"><option value="">Anywhere</option></select></div>
+  <label style="display:flex;gap:6px;align-items:center;margin:0 0 8px"><input type="checkbox" id="r_nos" checked>hide "no sponsorship" jobs</label>
+  <button class="p" onclick="loadRecs()">Refresh</button></div></div>
+ <div id="recout"></div>
+</section>
+
+<section id="emps">
+ <div class="card"><div class="row">
+  <div><label>Name contains</label><input id="e_q"></div>
+  <div><label>State</label><select id="e_state"><option value="">Any</option></select></div>
+  <div><label>Industry</label><select id="e_ind"><option value="">Any</option></select></div>
+  <label style="display:flex;gap:6px;align-items:center;margin:0 0 8px"><input type="checkbox" id="e_jobs">has openings</label>
+  <button class="p" onclick="loadEmps()">Search</button></div></div>
+ <div class="card" style="overflow-x:auto"><table id="etbl"></table></div>
+ <div id="edetail"></div>
+</section>
+
+<section id="data">
+ <div class="card"><b>Loaded datasets</b><table id="dtbl" style="margin-top:8px"></table></div>
+ <div class="card"><b>Add more USCIS data</b>
+  <p class="mute" style="margin:4px 0 10px">Adds other fiscal years of the H-1B Employer Data Hub (or any USCIS file with an employer-name column) and merges them by employer, so you see multi-year sponsorship history and better rankings.</p>
+  <div class="row"><button class="p" onclick="discover()">Find files on uscis.gov</button>
+   <div><label>…or file URL</label><input id="d_url" style="width:340px" placeholder="https://www.uscis.gov/…csv"></div><button class="s" onclick="ingestUrl()">Import URL</button>
+   <div><label>…or upload csv/xlsx/zip</label><input type="file" id="d_file"></div><button class="s" onclick="uploadData()">Upload</button></div>
+  <div id="dlinks"></div><div id="dmsg"></div></div>
+</section>
+</main>
+<script>
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function api(u,body,form){const o=body===undefined?{}:form?{method:'POST',body}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
+ const r=await fetch(u,o);const j=await r.json().catch(()=>({error:'bad response'}));if(!r.ok)throw new Error(j.error||r.statusText);return j}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,section').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#'+b.dataset.t).classList.add('on');
+ if(b.dataset.t=='recs')loadRecs();if(b.dataset.t=='emps')loadEmps();if(b.dataset.t=='data')loadData()});
+let facetsDone=false;
+async function status(){const s=await api('/api/status');
+ $('#stat').textContent=`${s.employers.toLocaleString()} employers · ${s.boards.toLocaleString()} job boards · ${s.jobs.toLocaleString()} openings`;
+ if(!facetsDone){facetsDone=true;for(const id of ['#s_state','#e_state','#r_state'])s.facets.states.forEach(x=>$(id).add(new Option(x,x)));
+  for(const id of ['#s_ind','#e_ind'])s.facets.industries.forEach(x=>$(id).add(new Option(x,x.split(' ')[0])))}
+ if(s.resume){$('#rprof').style.display='block';$('#rprof').innerHTML=`<b>Resume loaded</b> · ~${s.resume.years} yrs experience<br>`+s.resume.skills.map(x=>`<span class=chip>${esc(x)}</span>`).join('')}
+ const c=s.scan;if(c.total){$('#scan').style.display='block';$('#scanbar').style.width=(100*c.done/c.total)+'%';
+  $('#scantxt').textContent=`${c.running?'Scanning':'Done'}: ${c.done}/${c.total} employers · ${c.boards} boards found · ${c.jobs} openings`+(c.error?' · error: '+c.error:'')}
+ return s}
+async function uploadResume(pasted){try{const fd=new FormData();let j;
+ if(pasted)j=await api('/api/resume',{text:$('#rtext').value});else{const f=$('#rfile').files[0];if(!f)return;fd.append('file',f);j=await api('/api/resume',fd,true)}
+ status()}catch(e){alert(e.message)}}
+async function startScan(){await api('/api/scan',{top_n:+$('#s_n').value,industry:$('#s_ind').value,state:$('#s_state').value,min_approvals:+$('#s_min').value,refresh:$('#s_ref').checked});status()}
+async function loadRecs(){$('#recout').innerHTML='<p class=mute>Ranking…</p>';
+ try{const p=new URLSearchParams({keywords:$('#r_kw').value,state:$('#r_state').value,hide_no_sponsor:$('#r_nos').checked?1:0});
+  const j=await api('/api/recommendations?'+p);
+  if(!j.results.length){$('#recout').innerHTML='<div class=card>No matches yet. Run a scan on the first tab (and upload a resume).</div>';return}
+  $('#recout').innerHTML=`<p class=mute>${j.results.length} best matches out of ${j.pool.toLocaleString()} openings</p>`+j.results.map(r=>`<div class="card job">
+   <div class=score>${Math.round(r.score)}<small>match</small></div><div>
+   <h3><a href="${esc(r.url)}" target=_blank rel=noopener>${esc(r.title)}</a></h3>
+   <div class=mute>${esc(r.employer)} · ${esc(r.location)||'location n/a'}${r.department?' · '+esc(r.department):''}</div>
+   <div><span class="chip ok">H-1B: ${r.h1b_approvals??0} approvals (${r.h1b_new_latest??0} new this FY)</span>${r.flags.map(f=>`<span class="chip warn">${esc(f)}</span>`).join('')}</div>
+   <div>${r.skills_matched.map(x=>`<span class="chip ok">✓ ${esc(x)}</span>`).join('')}${r.skills_missing.map(x=>`<span class=chip>${esc(x)}</span>`).join('')}</div></div></div>`).join('')
+ }catch(e){$('#recout').innerHTML=`<div class=card>${esc(e.message)}</div>`}}
+async function loadEmps(){const p=new URLSearchParams({q:$('#e_q').value,state:$('#e_state').value,industry:$('#e_ind').value,has_jobs:$('#e_jobs').checked?1:0});
+ const j=await api('/api/employers?'+p);$('#etbl').innerHTML='<tr><th>Employer<th>Location<th>Industry<th>Approvals<th>New (FY)<th>Years<th>Openings</tr>'+
+ j.map(e=>`<tr style="cursor:pointer" onclick="showEmp('${esc(e.norm)}')"><td>${esc(e.name)}<td>${esc(e.city)}, ${esc(e.state)}<td class=mute>${esc((e.naics||'').slice(0,30))}<td>${e.app_total}<td>${e.new_app_latest}<td>${e.years}<td>${e.has_jobs?'●':''}</tr>`).join('')}
+async function showEmp(n){const j=await api('/api/employer/'+encodeURIComponent(n));
+ $('#edetail').innerHTML=`<div class=card><b>${esc(n)}</b><table><tr><th>FY<th>New<th>Continuing<th>Other<th>Denials</tr>`+j.history.map(h=>`<tr><td>${h.fy}<td>${h.new_app}<td>${h.cont_app}<td>${h.other_app}<td>${h.new_den+h.cont_den+h.other_den}</tr>`).join('')+'</table>'+
+ (j.jobs.length?'<p><b>Openings</b></p>'+j.jobs.map(x=>`<div><a href="${esc(x.url)}" target=_blank>${esc(x.title)}</a> <span class=mute>${esc(x.location)}</span></div>`).join(''):'<p class=mute>No openings scanned yet.</p>')+'</div>';$('#edetail').scrollIntoView()}
+async function loadData(){const j=await api('/api/datasets');$('#dtbl').innerHTML='<tr><th>Source<th>Rows<th>Fiscal years<th></tr>'+j.datasets.map(d=>`<tr><td>${esc(d.label)}<td>${d.rows.toLocaleString()}<td>${esc(d.fys)}<td><button class=s onclick='rmData(${JSON.stringify(d.source)})'>remove</button></tr>`).join('')}
+async function rmData(s){await api('/api/datasets/remove',{source:s});loadData();status()}
+function dmsg(t){$('#dmsg').innerHTML=`<div class=msg>${esc(t)}</div>`}
+async function discover(){dmsg('Looking…');try{const j=await api('/api/datasets/discover',{});
+ $('#dmsg').innerHTML='';$('#dlinks').innerHTML=j.links.length?'<table>'+j.links.map(l=>`<tr><td>${esc(l.label)}<td>${l.fy||''}<td><button class=s onclick='ingestUrl(${JSON.stringify(l.url)})'>import</button></tr>`).join('')+'</table>':'';
+ if(!j.links.length)dmsg('No files found automatically. Download from the USCIS H-1B Employer Data Hub page and upload them here.')}catch(e){dmsg(e.message)}}
+async function ingestUrl(u){u=u||$('#d_url').value;dmsg('Downloading…');try{const j=await api('/api/datasets/ingest',{url:u});dmsg(`Imported ${j.rows.toLocaleString()} rows (FY ${j.fiscal_years.join(', ')})`);loadData();status()}catch(e){dmsg(e.message)}}
+async function uploadData(){const f=$('#d_file').files[0];if(!f)return;const fd=new FormData();fd.append('file',f);dmsg('Importing…');try{const j=await api('/api/datasets/upload',fd,true);dmsg(`Imported ${j.rows.toLocaleString()} rows (FY ${j.fiscal_years.join(', ')})`);loadData();status()}catch(e){dmsg(e.message)}}
+status();setInterval(()=>{if($('#setup').classList.contains('on'))status()},2500);
+</script></body></html>
