@@ -22,18 +22,54 @@ NON_US = re.compile(r"\b(canada|india|united kingdom|uk|london|germany|berlin|fr
                     r"toronto|vancouver|bangalore|bengaluru|hyderabad|emea|apac|latam)\b", re.I)
  
  
-def is_us_location(loc: str) -> bool:
+US_STATE_NAMES = {
+    "alabama", "alaska", "arizona", "arkansas", "california", "colorado", "connecticut",
+    "delaware", "florida", "georgia", "hawaii", "idaho", "illinois", "indiana", "iowa",
+    "kansas", "kentucky", "louisiana", "maine", "maryland", "massachusetts", "michigan",
+    "minnesota", "mississippi", "missouri", "montana", "nebraska", "nevada",
+    "new hampshire", "new jersey", "new mexico", "new york", "north carolina",
+    "north dakota", "ohio", "oklahoma", "oregon", "pennsylvania", "rhode island",
+    "south carolina", "south dakota", "tennessee", "texas", "utah", "vermont",
+    "virginia", "washington", "west virginia", "wisconsin", "wyoming",
+    "district of columbia",
+}
+
+
+def is_us_location(loc: str, country: str | None = None) -> bool:
+    # Structured country data takes precedence over ambiguous free text.
+    if country and country.strip():
+        return country.strip().lower() in {"us", "usa", "united states", "united states of america"}
     if not loc:
-        return True  # unknown -> don't hide
-    if re.search(r"united states|\busa\b|\bu\.s\.", loc, re.I):
         return True
-    if re.search(r",\s*(%s)\b" % "|".join(US_STATES), loc) or re.search(r"\b(%s)\b$" % "|".join(US_STATES), loc.strip()):
+    if re.search(r"united states|\busa\b|\bu\.s\.(?:a\.)?|(?:^|[,;\s])US(?:$|[,;\s])", loc, re.I):
         return True
     if NON_US.search(loc):
         return False
+    parts = [p.strip().lower() for p in re.split(r"[,;|]", loc)]
+    if any(p in US_STATE_NAMES for p in parts):
+        return True
+    if re.search(r",\s*(%s)\b" % "|".join(US_STATES), loc):
+        return True
     return bool(re.search(r"remote|new york|san francisco|seattle|austin|boston|chicago", loc, re.I))
- 
- 
+
+
+class BoardRequestError(RuntimeError):
+    """An incomplete lookup must not overwrite cached jobs."""
+
+
+def _get_json(sess, url, *, allow_missing=False, timeout=20):
+    try:
+        response = sess.get(url, timeout=timeout)
+        if allow_missing and response.status_code in {404, 410}:
+            return None
+        if response.status_code != 200:
+            raise BoardRequestError(f"HTTP {response.status_code}: {url}")
+        return response.json()
+    except BoardRequestError:
+        raise
+    except Exception as exc:
+        raise BoardRequestError(f"Could not fetch {url}: {exc}") from exc
+
 def strip_html(s: str | None) -> str:
     if not s:
         return ""
@@ -88,29 +124,28 @@ def _job(provider, slug, id_, title, location, url, desc, dept, posted):
  
  
 def greenhouse(sess, slug):
-    r = sess.get(f"https://boards-api.greenhouse.io/v1/boards/{slug}", timeout=10)
-    if r.status_code != 200:
+    base = f"https://boards-api.greenhouse.io/v1/boards/{slug}"
+    meta = _get_json(sess, base, allow_missing=True, timeout=10)
+    if meta is None:
         return False, None, []
-    meta = r.json()
     if not isinstance(meta, dict):
-        return False, None, []
+        raise BoardRequestError("Malformed Greenhouse board")
     name = meta.get("name")
-    r = sess.get(f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true", timeout=30)
-    body = r.json() if r.status_code == 200 else None
-    if not isinstance(body, dict):
-        return False, name, []
+    body = _get_json(sess, base + "/jobs?content=true", timeout=30)
+    if not isinstance(body, dict) or not isinstance(body.get("jobs"), list):
+        raise BoardRequestError("Malformed Greenhouse jobs")
     jobs = [_job("greenhouse", slug, j.get("id"), j.get("title"), (j.get("location") or {}).get("name"),
                  j.get("absolute_url"), strip_html(j.get("content")),
                  ", ".join(d.get("name", "") for d in j.get("departments") or []), j.get("updated_at"))
-            for j in (body.get("jobs") or []) if isinstance(j, dict)]
+            for j in body["jobs"] if isinstance(j, dict)]
     return True, name, jobs
- 
- 
+
 def lever(sess, slug):
-    r = sess.get(f"https://api.lever.co/v0/postings/{slug}?mode=json", timeout=20)
-    data = r.json() if r.status_code == 200 else None
-    if not isinstance(data, list):
+    data = _get_json(sess, f"https://api.lever.co/v0/postings/{slug}?mode=json", allow_missing=True)
+    if data is None:
         return False, None, []
+    if not isinstance(data, list):
+        raise BoardRequestError("Malformed Lever jobs")
     jobs = []
     for j in data:
         if not isinstance(j, dict):
@@ -123,12 +158,11 @@ def lever(sess, slug):
  
  
 def ashby(sess, slug):
-    r = sess.get(f"https://api.ashbyhq.com/posting-api/job-board/{slug}", timeout=20)
-    if r.status_code != 200:
+    data = _get_json(sess, f"https://api.ashbyhq.com/posting-api/job-board/{slug}", allow_missing=True)
+    if data is None:
         return False, None, []
-    data = r.json()
     if not isinstance(data, dict) or not isinstance(data.get("jobs"), list):
-        return False, None, []
+        raise BoardRequestError("Malformed Ashby jobs")
     jobs = [_job("ashby", slug, j.get("id"), j.get("title"), j.get("location"), j.get("jobUrl"),
                  j.get("descriptionPlain") or strip_html(j.get("descriptionHtml")), j.get("department"),
                  (j.get("publishedAt") or "")[:10]) for j in data["jobs"] if isinstance(j, dict) and j.get("isListed", True)]
@@ -136,57 +170,94 @@ def ashby(sess, slug):
  
  
 def smartrecruiters(sess, slug):
-    r = sess.get(f"https://api.smartrecruiters.com/v1/companies/{slug}/postings?limit=100", timeout=20)
-    if r.status_code != 200:
-        return False, None, []
-    data = r.json()
-    content = data.get("content") if isinstance(data, dict) else None
-    if not isinstance(data, dict) or not data.get("totalFound") or not isinstance(content, list) or not content:
-        return False, None, []
-    name = ((content[0] or {}).get("company") or {}).get("name")
-    jobs = []
-    for j in content:
-        if not isinstance(j, dict):
-            continue
-        loc = j.get("location") or {}
-        loc_s = ", ".join(x for x in [loc.get("city"), (loc.get("region") or "").upper(), (loc.get("country") or "").upper()] if x)
-        jobs.append(_job("smartrecruiters", slug, j.get("id"), j.get("name"), loc_s,
-                         f"https://jobs.smartrecruiters.com/{slug}/{j.get('id')}", "",
-                         (j.get("department") or {}).get("label"), (j.get("releasedDate") or "")[:10]))
-    return True, name, jobs
- 
- 
+    base = f"https://api.smartrecruiters.com/v1/companies/{slug}/postings"
+    jobs, seen = [], set()
+    name, offset = None, 0
+    while True:
+        data = _get_json(sess, f"{base}?limit=100&offset={offset}", allow_missing=(offset == 0))
+        if data is None:
+            return False, None, []
+        if not isinstance(data, dict) or not isinstance(data.get("content"), list):
+            raise BoardRequestError("Malformed SmartRecruiters page")
+        content = data["content"]
+        try:
+            total = int(data["totalFound"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise BoardRequestError("Missing SmartRecruiters totalFound") from exc
+        if not content:
+            if offset < total:
+                raise BoardRequestError("SmartRecruiters pagination ended early")
+            # A valid empty board is not a confirmed missing board.
+            return True, name, jobs
+        added = 0
+        for posting in content:
+            if not isinstance(posting, dict) or not posting.get("id"):
+                raise BoardRequestError("Malformed SmartRecruiters posting")
+            ident = str(posting["id"])
+            if ident in seen:
+                continue
+            seen.add(ident)
+            added += 1
+            detail = _get_json(sess, f"{base}/{ident}")
+            if not isinstance(detail, dict):
+                raise BoardRequestError("Malformed SmartRecruiters details")
+            name = name or (posting.get("company") or {}).get("name")
+            loc = detail.get("location") or posting.get("location") or {}
+            loc_s = ", ".join(str(x) for x in
+                              [loc.get("city"), loc.get("region"), (loc.get("country") or "").upper()] if x)
+            sections = (detail.get("jobAd") or {}).get("sections") or {}
+            description = " ".join(strip_html((sections.get(key) or {}).get("text"))
+                                   for key in ("companyDescription", "jobDescription",
+                                               "qualifications", "additionalInformation"))
+            job = _job("smartrecruiters", slug, ident, detail.get("name") or posting.get("name"), loc_s,
+                       detail.get("postingUrl") or f"https://jobs.smartrecruiters.com/{slug}/{ident}",
+                       description, (detail.get("department") or posting.get("department") or {}).get("label"),
+                       (detail.get("releasedDate") or posting.get("releasedDate") or "")[:10])
+            job["is_us"] = is_us_location(loc_s, loc.get("country"))
+            jobs.append(job)
+        offset += len(content)
+        if offset >= total:
+            return True, name, jobs
+        if not added:
+            raise BoardRequestError("SmartRecruiters pagination made no progress")
+
 PROVIDERS = {"greenhouse": greenhouse, "lever": lever, "ashby": ashby, "smartrecruiters": smartrecruiters}
 NEEDS_NAME_CHECK = {"greenhouse", "smartrecruiters"}
  
  
 def resolve(sess, employer_name: str, norm: str, known: dict | None = None):
-    """Return (provider, slug, jobs) or None. `known` = {provider: slug} from the cache (skips probing)."""
-    if known:
-        for prov, slug in known.items():
-            try:
-                ok, _, jobs = PROVIDERS[prov](sess, slug)
-                if ok:
-                    return prov, slug, jobs
-            except Exception:
-                pass
+    """Return a complete board, a confirmed miss, or raise to preserve cache."""
+    errors, checked = [], set()
+    # Only a successful lookup or explicit 404/410 resolves a cached board.
+    for prov, slug in (known or {}).items():
+        checked.add((prov, slug))
+        try:
+            ok, _, jobs = PROVIDERS[prov](sess, slug)
+        except Exception as exc:
+            raise BoardRequestError(f"Cached {prov}/{slug}: {exc}") from exc
+        if ok:
+            return prov, slug, jobs
+
     for slug, tier in slug_candidates(norm):
         for prov, fn in PROVIDERS.items():
-            if prov not in NEEDS_NAME_CHECK and tier > 2:
+            if (prov, slug) in checked or (prov not in NEEDS_NAME_CHECK and tier > 2):
                 continue
             try:
                 ok, board_name, jobs = fn(sess, slug)
-            except Exception:   # network error or an unexpected/malformed API response: treat as "not this board"
+            except Exception as exc:
+                errors.append(f"{prov}/{slug}: {exc}")
                 continue
             if not ok:
                 continue
-            if prov in NEEDS_NAME_CHECK:
-                if not similar(board_name or "", employer_name) and not similar(board_name or "", norm):
-                    continue
+            if prov in NEEDS_NAME_CHECK and not (
+                similar(board_name or "", employer_name) or similar(board_name or "", norm)
+            ):
+                continue
             return prov, slug, jobs
+    if errors:
+        raise BoardRequestError("; ".join(errors[:3]))
     return None
- 
- 
+
 # ---- scanning -------------------------------------------------------------------------------------------------
  
 class Scanner:
@@ -222,9 +293,9 @@ class Scanner:
             fresh = db.thread_conn(self.conn).execute("SELECT MAX(fetched_at) m FROM jobs WHERE norm=?", (norm,)).fetchone()["m"]
             if fresh and now - fresh < JOB_TTL:
                 return norm, None, "fresh"
-        sess = requests.Session()
-        sess.headers.update(HEADERS)
-        return norm, resolve(sess, name, norm, known), "scanned"
+        with requests.Session() as sess:
+            sess.headers.update(HEADERS)
+            return norm, resolve(sess, name, norm, known), "scanned"
  
     def _run(self, employers, refresh, workers):
         try:
@@ -255,15 +326,18 @@ class Scanner:
     def _store(self, norm, res):
         now = time.time()
         c = db.thread_conn(self.conn)
-        if res is None:
-            c.execute("INSERT OR REPLACE INTO boards VALUES(?,?,?,?,?)", (norm, "none", "", 0, now))
-        else:
-            prov, slug, jobs = res
-            c.execute("DELETE FROM boards WHERE norm=? AND provider='none'", (norm,))
-            c.execute("INSERT OR REPLACE INTO boards VALUES(?,?,?,?,?)", (norm, prov, slug, 1, now))
+        # Commit replacement atomically; failures roll back the deletion.
+        with c:
+            c.execute("DELETE FROM boards WHERE norm=?", (norm,))
             c.execute("DELETE FROM jobs WHERE norm=?", (norm,))
-            c.executemany("INSERT OR REPLACE INTO jobs VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
-                          [(j["uid"], norm, prov, slug, j["title"], j["location"], int(is_us_location(j["location"])),
-                            j["url"], j["description"], j["department"], j["posted"], now) for j in jobs])
-        c.commit()
- 
+            if res is None:
+                c.execute("INSERT INTO boards VALUES(?,?,?,?,?)", (norm, "none", "", 0, now))
+            else:
+                prov, slug, jobs = res
+                c.execute("INSERT INTO boards VALUES(?,?,?,?,?)", (norm, prov, slug, 1, now))
+                c.executemany("INSERT OR REPLACE INTO jobs VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                              [(j["uid"], norm, prov, slug, j["title"], j["location"],
+                                int(j["is_us"] if "is_us" in j else is_us_location(j["location"])),
+                                j["url"], j["description"], j["department"], j["posted"], now)
+                               for j in jobs])
+
