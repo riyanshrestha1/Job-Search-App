@@ -12,7 +12,10 @@ class EmployerIndex:
     def refresh(self):
         f = pd.read_sql_query("SELECT * FROM filings", self.conn)
         if f.empty:
-            self.df = pd.DataFrame(columns=["norm", "name"])
+            self.df = pd.DataFrame(columns=["norm", "name", "naics", "state", "city", "years", "app_total", "den_total",
+                                            "new_app_latest", "cont_app_latest", "other_app_latest", "app_latest",
+                                            "den_latest", "volume", "sponsor_score", "approval_rate"])
+            self.latest_fy = None
             self.f = f
             return
         # the same FY can arrive from two files; keep the largest source per (norm, fy, city, zip) to avoid double counting

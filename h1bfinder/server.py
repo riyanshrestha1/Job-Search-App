@@ -38,6 +38,16 @@ def _clean(df, cols):
     return d.where(d.notna(), None).to_dict("records")
 
 
+@app.errorhandler(Exception)
+def on_error(e):
+    import traceback
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return jsonify(error=e.description), e.code
+    traceback.print_exc()
+    return jsonify(error=f"{type(e).__name__}: {e}"), 500
+
+
 @app.get("/")
 def home():
     return render_template("index.html")
