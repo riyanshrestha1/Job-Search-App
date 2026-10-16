@@ -30,10 +30,20 @@ CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
 """
 
 
+class Connection(sqlite3.Connection):
+    """Remember the database path before this connection is shared."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        row = self.execute("PRAGMA database_list").fetchone()
+        if row is None:
+            raise RuntimeError("Could not determine the SQLite database path")
+        self.database_path = row[2]
+
+
 def connect(path: Path | str | None = None, init: bool = True) -> sqlite3.Connection:
     p = Path(path) if path else DB_PATH
     p.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(p, check_same_thread=False, timeout=30)
+    conn = sqlite3.connect(p, check_same_thread=False, timeout=30, factory=Connection)
     conn.row_factory = sqlite3.Row
     if init:  # schema/WAL setup only once; concurrent re-init from worker threads causes "database is locked"
         conn.execute("PRAGMA journal_mode=WAL")
@@ -56,7 +66,14 @@ _tl = threading.local()
 
 
 def path_of(conn) -> str:
-    return conn.execute("PRAGMA database_list").fetchone()[2]
+    # Concurrent PRAGMA calls on one connection can return an empty cursor.
+    # Connections made by connect() cache this metadata before worker use.
+    if isinstance(conn, Connection):
+        return conn.database_path
+    row = conn.execute("PRAGMA database_list").fetchone()
+    if row is None:
+        raise RuntimeError("Could not determine the SQLite database path")
+    return row[2]
 
 
 def thread_conn(main_conn):

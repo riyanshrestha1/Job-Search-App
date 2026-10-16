@@ -266,13 +266,13 @@ class Scanner:
     def __init__(self, conn):
         self.conn = conn
         self.lock = threading.Lock()
-        self.state = {"running": False, "total": 0, "done": 0, "boards": 0, "jobs": 0, "cancel": False, "error": None}
+        self.state = {"running": False, "total": 0, "done": 0, "boards": 0, "jobs": 0, "cancel": False, "error": None, "failed": 0}
  
     def start(self, employers: list[tuple[str, str]], refresh=False, workers=12):
         with self.lock:
             if self.state["running"]:
                 return False
-            self.state.update(running=True, total=len(employers), done=0, boards=0, jobs=0, cancel=False, error=None)
+            self.state.update(running=True, total=len(employers), done=0, boards=0, jobs=0, cancel=False, error=None, failed=0)
         threading.Thread(target=self._run, args=(employers, refresh, workers), daemon=True).start()
         return True
  
@@ -300,29 +300,38 @@ class Scanner:
     def _run(self, employers, refresh, workers):
         try:
             with ThreadPoolExecutor(workers) as ex:
-                futs = [ex.submit(self._one, n, nm, refresh) for n, nm in employers]
+                futs = {ex.submit(self._one, name, norm, refresh): (name, norm)
+                        for name, norm in employers}
                 for fut in as_completed(futs):
                     if self.state["cancel"]:
-                        for f in futs:
-                            f.cancel()
+                        for pending in futs:
+                            pending.cancel()
                         break
+                    name, employer_norm = futs[fut]
                     try:
                         norm, res, how = fut.result()
-                    except Exception as e:
-                        norm, res, how = None, None, "error"
-                        self.state["error"] = f"{type(e).__name__}: {e}"
-                        import traceback; traceback.print_exc()   # full trace in the server terminal
-                    if norm and how == "scanned":
-                        self._store(norm, res)
-                    self.state["done"] += 1
-                    if res:
-                        self.state["boards"] += 1
-                        self.state["jobs"] += len(res[2])
-        except Exception as e:  # pragma: no cover
-            self.state["error"] = str(e)
+                        if norm and how == "scanned":
+                            self._store(norm, res)
+                        if res:
+                            self.state["boards"] += 1
+                            self.state["jobs"] += len(res[2])
+                    except Exception as exc:
+                        self.state["failed"] += 1
+                        self.state["error"] = (
+                            f"{name} ({employer_norm}): {type(exc).__name__}: {exc}"
+                        )
+                        import traceback
+                        traceback.print_exc()
+                    finally:
+                        # A failed employer is processed too; continue the remaining scan.
+                        self.state["done"] += 1
+        except Exception as exc:
+            self.state["error"] = f"{type(exc).__name__}: {exc}"
+            import traceback
+            traceback.print_exc()
         finally:
             self.state["running"] = False
- 
+
     def _store(self, norm, res):
         now = time.time()
         c = db.thread_conn(self.conn)
