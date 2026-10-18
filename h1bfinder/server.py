@@ -1,15 +1,15 @@
 from __future__ import annotations
-import argparse, threading
+import argparse, threading, os
 from pathlib import Path
 from flask import Flask, jsonify, render_template, request
 
-from . import db, uscis, resume as rs, matcher
+from . import db, uscis, resume as rs, matcher, accounts
 from .ats import Scanner
 from .employers import EmployerIndex
 from .names import normalize
 
 app = Flask(__name__)
-conn = db.connect()
+conn = db.connect(os.environ.get("H1B_DB_PATH"))
 index = EmployerIndex(conn)
 scanner = Scanner(conn)
 _lock = threading.Lock()
@@ -23,11 +23,12 @@ class _Conn:
 
 _main = conn
 conn = _Conn()
+accounts.install(app, conn)
 
 
 def _resume():
-    text = db.get_meta(conn, "resume_text", "") or ""
-    return text, (rs.build_profile(text) if text else {"skills": [], "years": 0, "chars": 0})
+    row = accounts.active_resume(conn)
+    return (row['text'], accounts.profile(row)) if row else ('', {'skills': [], 'years': 0, 'chars': 0})
 
 
 def _clean(df, cols):
@@ -65,15 +66,7 @@ def status():
 
 @app.post("/api/resume")
 def upload_resume():
-    if "file" in request.files and request.files["file"].filename:
-        f = request.files["file"]
-        text = rs.extract_text(f.read(), f.filename)
-    else:
-        text = (request.get_json(silent=True) or {}).get("text", "")
-    if len(text.strip()) < 50:
-        return jsonify(error="Could not read any text from the resume (scanned image PDF?). Paste the text instead."), 400
-    db.set_meta(conn, "resume_text", text)
-    return jsonify(rs.build_profile(text))
+    return accounts.save_resume(conn)
 
 
 @app.get("/api/employers")
@@ -201,3 +194,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

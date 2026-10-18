@@ -84,7 +84,13 @@ def main():
     # Flask smoke test
     import h1bfinder.server as srv
     srv._main, srv.index, srv.scanner = conn, ix, sc
+    conn.executescript(srv.accounts.SCHEMA)
     c = srv.app.test_client()
+    csrf = c.get('/api/auth/session').get_json()['csrf']
+    check(c.post('/api/auth/register', json={'username':'smoke-user','password':'smoke-test-password'},
+                 headers={'X-CSRF-Token':csrf}).status_code == 200, 'create account')
+    csrf = c.get('/api/auth/session').get_json()['csrf']
+    c.environ_base['HTTP_X_CSRF_TOKEN'] = csrf
     check(c.get("/").status_code == 200, "index page")
     check(c.get("/api/status").get_json()["employers"] > 40000, "status")
     check(c.post("/api/resume", json={"text": text}).status_code == 200, "resume upload")
@@ -98,3 +104,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

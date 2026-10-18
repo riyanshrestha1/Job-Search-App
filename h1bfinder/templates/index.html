@@ -21,8 +21,9 @@
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 .resume-status{margin:0 0 14px;padding:13px 15px;border:1px solid #dce5d5;background:#f7faf2;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12px;line-height:1.6;color:#4f6542}
-.resume-status strong{display:block;font-size:12px}.resume-status p{margin:3px 0 0;font-size:11px;color:inherit}.resume-status[data-state="success"]{background:#ecf8ef;border-color:#a8d1b2;color:#215f34}.resume-status[data-state="error"]{background:#fff1ef;border-color:#edb9ae;color:#983e2f}.resume-status[data-state="uploading"]{background:#eff5ff;border-color:#bfd1ee;color:#355c8c}.resume-status[data-state="selected"]{background:#fff9e9;border-color:#e9d798;color:#806321}.resume-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;background:#eef1e9;color:#75816c;margin-top:6px}.resume-badge[data-saved="true"]{background:#dff2e3;color:#27683b}.resume-next{margin:10px 0 0;font-size:11px;color:#58774a}#rprof{font-size:11px}#rprof .resume-detail{display:block;margin:5px 0 8px;line-height:1.7}.resume-status[hidden]{display:none}
-</style>
+.resume-status strong{display:block;font-size:12px}.resume-status p{margin:3px 0 0;font-size:11px;color:inherit}.resume-status[data-state="success"]{background:#ecf8ef;border-color:#a8d1b2;color:#215f34}.resume-status[data-state="error"]{background:#fff1ef;border-color:#edb9ae;color:#983e2f}.resume-status[data-state="uploading"]{background:#eff5ff;border-color:#bfd1ee;color:#355c8c}.resume-status[data-state="selected"]{background:#fff9e9;border-color:#e9d798;color:#806321}.resume-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;background:#eef1e9;color:#75816c;margin-top:6px}.resume-badge[data-saved="true"]{background:#dff2e3;color:#27683b}.resume-next{margin:10px 0 0;font-size:11px;color:#58774a}#rprof{font-size:11px}#rprof .resume-detail{display:block;margin:5px 0 8px;line-height:1.7}[hidden]{display:none!important}
+#logout-button{margin-top:12px}#resume-preview{width:min(750px,92vw);max-height:85vh;border:1px solid #dce5d5;border-radius:16px;padding:24px}#resume-preview::backdrop{background:#19362888}#preview-text{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.7 system-ui;max-height:55vh;overflow:auto}.resume-card h3{overflow-wrap:anywhere}.resume-card .row{align-items:center}.resume-card p{font-size:12px}.resume-card a{font-size:12px}.resume-card .active-label{color:#286343;font-weight:700}#library-message{color:#805422}
+.sidebar{overflow-y:auto}.sidebar-foot{flex-shrink:0}.sidebar nav{flex-shrink:0}#resumes .page-heading{display:block}#resumes .page-heading p{margin-top:8px}#resume-preview h2{overflow-wrap:anywhere}@media(max-width:580px){.sidebar nav{grid-template-columns:repeat(5,minmax(0,1fr))}.sidebar-foot{display:block;position:absolute;top:6px;right:18px}.sidebar-foot .local-user{display:none}#logout-button{font-size:10px;padding:6px 10px;min-height:30px}.connection:after{content:'Workspace'}}</style>
 </head>
 <body>
 <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>
@@ -49,10 +50,10 @@
   <button data-t="recs" title="Recommendations"><svg><use href="#i-spark"/></svg><span>Matches</span></button>
   <button data-t="emps" title="Employer directory"><svg><use href="#i-building"/></svg><span>Employers</span></button>
   <button data-t="data" title="USCIS data"><svg><use href="#i-database"/></svg><span>USCIS data</span></button>
- </nav>
+ <button data-t="resumes" title="My resumes"><svg><use href="#i-file"/></svg><span>My resumes</span></button></nav>
  <div class="sidebar-foot">
-  <div class="privacy-note"><svg><use href="#i-shield"/></svg><strong>Your search. Your space.</strong><p>Your resume stays on your device. Build your next chapter with a little more peace of mind.</p></div>
-  <div class="local-user"><div class="avatar"><svg><use href="#i-briefcase"/></svg></div><div>Your workspace<small><span class="online-dot"></span>Personal · Local</small></div></div>
+  <div class="privacy-note"><svg><use href="#i-shield"/></svg><strong>Your search. Your space.</strong><p>Your resume is private to your account. Build your next chapter with a little more peace of mind.</p></div>
+  <button class="s" id="logout-button" onclick="logout()">Sign out</button><div class="local-user"><div class="avatar"><svg><use href="#i-briefcase"/></svg></div><div><span id="account-name">Your account</span><small>Personal workspace</small></div></div>
  </div>
 </aside>
 
@@ -73,11 +74,11 @@
    </div>
    <div class="section-label"><h2>Make it personal</h2><span>Two steps to better opportunities</span></div>
    <div class="setup-grid">
-    <div class="card"><div class="card-heading"><span class="step">01</span><div><h3>Start with your story</h3><p>Add your resume to find roles that fit your experience.</p><span id="resume-badge" class="resume-badge">Checking saved resume…</span></div></div>
-     <div id="resume-status" class="resume-status" role="status" aria-live="polite" aria-atomic="true" data-state="idle"><div><strong id="resume-status-title">Checking your saved resume…</strong><p id="resume-status-message">We’ll show whether a resume is already saved in your app.</p></div></div>
+    <div class="card"><div class="card-heading"><span class="step">01</span><div><h3>Start with your story</h3><p>Add your resume to find roles that fit your experience.</p><span id="resume-badge" hidden class="resume-badge">Checking saved resume…</span></div></div>
+     <div id="resume-status" hidden class="resume-status" role="status" aria-live="polite" aria-atomic="true" data-state="idle"><button class="s" type="button" aria-label="Dismiss notification" onclick="dismissResumeFeedback()">×</button><div><strong id="resume-status-title"></strong><p id="resume-status-message"></p></div></div>
      <label class="upload-area"><div class="upload-icon"><svg><use href="#i-upload"/></svg></div><strong><span>Choose a file</span> or drop it here</strong><small id="resume-filename">PDF, DOCX or TXT · Select a file to begin</small><input type="file" id="rfile" accept=".pdf,.docx,.txt,.md" aria-label="Choose your resume"></label>
      <button id="resume-upload-button" class="p wide" onclick="uploadResume()">Upload resume <svg class="button-icon"><use href="#i-arrow"/></svg></button>
-     <p class="resume-note"><svg><use href="#i-lock"/></svg>Your resume stays on your device.</p>
+     <p class="resume-note"><svg><use href="#i-lock"/></svg>Your resume is private to your account.</p>
      <details><summary>Prefer to paste your resume instead?</summary><div class="paste-area"><label class="field-label" for="rtext">Resume text</label><textarea id="rtext" placeholder="Paste your experience, skills and education here…"></textarea><button id="resume-paste-button" class="s wide" onclick="uploadResume(true)">Save resume text</button></div></details><div id="rprof" style="display:none"></div>
     </div>
     <div class="card"><div class="card-heading"><span class="step">02</span><div><h3>Find your opportunities</h3><p>Choose where to look. We’ll take it from here.</p></div></div>
@@ -89,7 +90,8 @@
    <div class="source-strip"><span>Connecting you with opportunities on</span><b>greenhouse</b><b>lever ↗</b><b>ashby</b><b>SmartRecruiters</b></div>
   </section>
 
-  <section id="recs">
+  <section id="resumes"><div class="page-heading"><h1>My resumes</h1><p>Keep your story up to date. Choose the resume used for job matching.</p></div><div class="card"><div class="row"><button class="p" onclick="document.querySelector('[data-t=setup]').click();document.querySelector('#rfile').focus()">Upload a new resume</button><span class="mute">PDF, DOCX or TXT · Up to 10 MB · 20 resumes per account</span></div></div><p id="library-message" role="status"></p><div id="resume-list"></div><dialog id="resume-preview"><h2 id="preview-title"></h2><pre id="preview-text"></pre><button class="s" onclick="document.querySelector('#resume-preview').close()">Close</button></dialog></section>
+<section id="recs">
    <div class="page-heading"><div><div class="eyebrow">EXPERIENCE, MEET OPPORTUNITY</div><h1>Find the roles that fit.</h1><p>Openings ranked around your skills, experience and employer sponsorship history.</p></div><div class="outline-tag"><svg><use href="#i-spark"/></svg>Made for your next move</div></div>
    <div class="card filter-card"><div class="row"><div class="field keyword-field"><label class="field-label" for="r_kw">What do you want to do?</label><input id="r_kw" placeholder="Data engineer, product designer…"></div><div class="field"><label class="field-label" for="r_state">Job location</label><select id="r_state"><option value="">Anywhere</option></select></div><label class="check-label"><input type="checkbox" id="r_nos" checked>Hide no-sponsorship roles</label><button class="p" onclick="loadRecs()"><svg class="button-icon"><use href="#i-search"/></svg>Find matches</button></div></div>
    <div id="recout"><div class="empty-state"><div class="empty-icon"><svg><use href="#i-spark"/></svg></div><h3>A new possibility is waiting.</h3><p>Add your resume and scan employers from the Overview tab. Your personalized matches will appear here.</p></div></div>
@@ -102,7 +104,7 @@
   </section>
 
   <section id="data">
-   <div class="page-heading"><div><div class="eyebrow">BETTER CONTEXT. MORE CONFIDENCE.</div><h1>The data behind your search.</h1><p>Build a fuller picture of employer sponsorship by adding USCIS fiscal years.</p></div><div class="outline-tag"><svg><use href="#i-database"/></svg>Your local data library</div></div>
+   <div class="page-heading"><div><div class="eyebrow">BETTER CONTEXT. MORE CONFIDENCE.</div><h1>The data behind your search.</h1><p>Build a fuller picture of employer sponsorship by adding USCIS fiscal years.</p></div><div class="outline-tag"><svg><use href="#i-database"/></svg>Shared employer data</div></div>
    <div class="card table-card"><div class="table-title"><h3>Your datasets</h3><span>Merged by employer name</span></div><table id="dtbl"></table></div>
    <div class="card"><div class="card-heading"><span class="step"><svg style="width:15px;height:15px"><use href="#i-database"/></svg></span><div><h3>Expand your library</h3><p>Find official datasets, import a link, or add a file of your own.</p></div></div><div class="dataset-grid">
     <div class="dataset-box"><h3>Discover official files</h3><p>Look for available fiscal years on the USCIS H-1B Employer Data Hub.</p><button class="s" onclick="discover()"><svg class="button-icon"><use href="#i-search"/></svg>Find USCIS datasets</button><div id="dlinks"></div></div>
@@ -110,21 +112,40 @@
     <div class="dataset-box"><h3>Upload a dataset</h3><p>Add a CSV, XLSX or ZIP file with an employer-name column.</p><div class="row"><div class="field"><label class="field-label" for="d_file">Dataset file</label><input type="file" id="d_file" accept=".csv,.xlsx,.zip"></div><button class="s" onclick="uploadData()"><svg class="button-icon"><use href="#i-upload"/></svg>Upload file</button></div></div>
    </div><div id="dmsg" aria-live="polite"></div><div class="data-note"><svg><use href="#i-shield"/></svg><span>H-1B approvals reflect past petitions, not current openings or a promise of sponsorship. Use this history as context as you explore each role.</span></div></div>
   </section>
-  <footer class="page-footer"><span id="stat">Your search runs locally. Your next chapter is yours to write.</span><span>H-1B Job Finder</span></footer>
+  <footer class="page-footer"><span id="stat">Your next chapter is yours to write.</span><span>H-1B Job Finder</span></footer>
  </main>
 </div>
 <script>
+let csrf='';
+const authReady=fetch('/api/auth/session').then(r=>{if(!r.ok)throw new Error('Unable to load your session.');return r.json()}).then(d=>{if(!d.user){location.replace('/login');throw new Error('Please sign in.');}csrf=d.csrf;document.querySelector('#account-name').textContent=d.user.username;});
+async function logout(){try{await api('/api/auth/logout',{});location.replace('/login');}catch(e){alert(e.message);}}
+async function loadResumes(){
+ const list=document.querySelector('#resume-list');list.textContent='Loading your resumes…';
+ try{const d=await api('/api/resumes');list.replaceChildren();
+ if(!d.resumes.length){list.innerHTML='<div class="card"><h3>Your story belongs here</h3><p>Upload your first resume to start matching with jobs.</p></div>';return;}
+ for(const r of d.resumes){const card=document.createElement('article');card.className='card resume-card';
+ card.innerHTML=`<h3>${esc(r.name)}</h3><p>${esc(new Date(r.created_at*1000).toLocaleString())} · ${r.skills.length} skills detected · ${r.chars.toLocaleString()} characters</p><p>${r.active?'<span class="active-label">✓ Active for job matching</span>':'Saved in your library'}</p><div class="row"></div>`;
+ const actions=card.querySelector('.row');
+ function button(label,action){const b=document.createElement('button');b.className='s';b.textContent=label;b.onclick=async()=>{b.disabled=true;document.querySelector('#library-message').textContent='';try{await action();}catch(e){document.querySelector('#library-message').textContent=e.message;}finally{b.disabled=false;}};actions.append(b);}
+ button('View text',async()=>{const d=await api('/api/resumes/'+r.id);document.querySelector('#preview-title').textContent=d.name;document.querySelector('#preview-text').textContent=d.text;document.querySelector('#resume-preview').showModal();});
+ const link=document.createElement('a');link.textContent='Download';link.href='/api/resumes/'+r.id+'/download';link.className='s';actions.append(link);
+ if(!r.active)button('Use for matching',async()=>{resumeRevision++;const p=await api('/api/resumes/'+r.id+'/activate',{});renderResumeProfile(p);await loadResumes();});
+ button('Delete',async()=>{if(!confirm('Delete '+r.name+'?'+(r.active?' You will need to choose another resume for matching.':'')))return;resumeRevision++;await api('/api/resumes/'+r.id+'/delete',{});await loadResumes();await refreshStatus();});
+ list.append(card);}
+ }catch(e){list.textContent=e.message;}
+}
+
 
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 async function api(u,body,form){const o=body===undefined?{}:form?{method:'POST',body}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
- const r=await fetch(u,o);const j=await r.json().catch(()=>({error:'bad response'}));if(!r.ok)throw new Error(j.error||r.statusText);return j}
+ await authReady;o.headers={...(o.headers||{}),'X-CSRF-Token':csrf};const r=await fetch(u,o);if(r.status===401){location.replace('/login');throw new Error('Please sign in.');}const j=await r.json().catch(()=>({error:'bad response'}));if(!r.ok)throw new Error(j.error||r.statusText);return j}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,section').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#'+b.dataset.t).classList.add('on');
- if(b.dataset.t=='recs')loadRecs();if(b.dataset.t=='emps')loadEmps();if(b.dataset.t=='data')loadData()});
+ if(b.dataset.t=='resumes')loadResumes();if(b.dataset.t=='recs')loadRecs();if(b.dataset.t=='emps')loadEmps();if(b.dataset.t=='data')loadData()});
 let facetsDone='';
 let resumeBusy=false, resumeRevision=0, savedResumeProfile=null, resumeFeedback='initial';
 async function status(){const revision=resumeRevision;const s=await api('/api/status');
  $('#k_employers').textContent=s.employers.toLocaleString();$('#k_boards').textContent=s.boards.toLocaleString();$('#k_jobs').textContent=s.jobs.toLocaleString();if(revision===resumeRevision&&!resumeBusy)renderResumeProfile(s.resume);
- $('#connection').textContent='Connected to your local app';
+ $('#connection').textContent='Connected to your workspace';
  $('#stat').textContent=`${s.employers.toLocaleString()} employers · ${s.boards.toLocaleString()} job boards · ${s.jobs.toLocaleString()} openings`;
  if(facetsDone!==JSON.stringify(s.facets)){facetsDone=JSON.stringify(s.facets);
  for(const id of ['#s_state','#e_state','#r_state','#s_ind','#e_ind']){const select=$(id),value=select.value;select.dataset.previous=value;select.replaceChildren(new Option(id==='#r_state'?'Anywhere':'Any',''));}
@@ -134,34 +155,20 @@ for(const id of ['#s_state','#e_state','#r_state'])s.facets.states.forEach(x=>$(
  const c=s.scan;if(c.total){$('#scan').style.display='block';$('#scanbar').style.width=(100*c.done/c.total)+'%';
   $('#scantxt').textContent=`${c.running?(c.cancel?'Stopping':'Scanning'):(c.cancel?'Stopped':'Done')}: ${c.done}/${c.total} employers · ${c.boards} boards found · ${c.jobs} openings`+(c.error?' · error: '+c.error:'')}
  return s}
-// Resume feedback is based on server-confirmed saves, never just file selection.
+// Resume feedback is only shown for a user action, never by status polling.
+let feedbackTimer;
+function dismissResumeFeedback(){clearTimeout(feedbackTimer);$('#resume-status').hidden=true;}
 function setResumeFeedback(state,title,message){
- resumeFeedback=state;
- $('#resume-status').dataset.state=state;
- $('#resume-status-title').textContent=title;
- $('#resume-status-message').textContent=message;
- if(state==='success'||state==='error')$('#resume-status').scrollIntoView({block:'center'});
+ clearTimeout(feedbackTimer);resumeFeedback=state;
+ $('#resume-status').hidden=false;$('#resume-status').dataset.state=state;
+ $('#resume-status-title').textContent=title;$('#resume-status-message').textContent=message;
+ if(state==='success')feedbackTimer=setTimeout(dismissResumeFeedback,6000);
 }
 function renderResumeProfile(profile){
  savedResumeProfile=profile||null;
- const saved=!!profile,badge=$('#resume-badge'),panel=$('#rprof');
- badge.textContent=saved?'✓ Resume uploaded':'No resume uploaded';
- badge.dataset.saved=String(saved);
- $('#k_resume').textContent=saved?'Resume uploaded':'Not uploaded yet';
- panel.replaceChildren();
- panel.style.display=saved?'block':'none';
- if(saved){
-  const title=document.createElement('b');title.textContent='Saved resume · ready for matching';panel.append(title);
-  const details=document.createElement('span');details.className='resume-detail';
-  details.textContent=(Number(profile.chars)||0).toLocaleString()+' characters read · '+(profile.skills||[]).length+' skills detected';
-  panel.append(details);
-  for(const skill of profile.skills||[]){const chip=document.createElement('span');chip.className='chip';chip.textContent=skill;panel.append(chip);}
-  const next=document.createElement('p');next.className='resume-next';next.textContent='Next: start an employer scan, then open Matches to see available roles.';panel.append(next);
- }
- if(resumeFeedback==='initial'||resumeFeedback==='idle'||resumeFeedback==='saved'){
-  setResumeFeedback(saved?'saved':'idle',saved?'Your resume is saved':'No resume uploaded yet',
-   saved?'Your app has a saved resume and will use it to rank job matches.':'Choose a file and click Upload resume, or paste your resume text below.');
- }
+ $('#resume-badge').hidden=true;
+ $('#k_resume').textContent=profile?'Ready for matching':'Choose a resume';
+ $('#rprof').style.display='none';
 }
 function setResumeBusy(busy,pasted){
  resumeBusy=busy;
@@ -175,7 +182,7 @@ function onResumeSelected(){
  const file=$('#rfile').files[0];
  $('#resume-filename').textContent=file?file.name:'PDF, DOCX or TXT · Select a file to begin';
  if(file)setResumeFeedback('selected','File selected — not uploaded yet',file.name+' is selected. Click Upload resume to save it.'+(savedResumeProfile?' Your previously saved resume is still active.':''));
- else{resumeFeedback='initial';renderResumeProfile(savedResumeProfile);}
+ else{dismissResumeFeedback();}
 }
 async function uploadResume(pasted=false){
  if(resumeBusy)return;
@@ -198,9 +205,10 @@ async function uploadResume(pasted=false){
   if(!Array.isArray(profile.skills)||!Number.isFinite(profile.chars)||profile.chars<50)throw new Error('The server did not confirm a readable saved resume. Please try again.');
   renderResumeProfile(profile);
   setResumeFeedback('success',pasted?'✓ Resume text saved successfully':'✓ Resume uploaded successfully',
-   label+' was saved. '+profile.chars.toLocaleString()+' characters read. You’re ready to scan employers and view Matches.');
+   label+' is now active for matching. View and manage it in My resumes.');
+  $('#rfile').value='';$('#rtext').value='';$('#resume-filename').textContent='PDF, DOCX or TXT · Select a file to begin';
  }catch(error){
-  setResumeFeedback('error','Resume upload failed',error.message+(savedResumeProfile?' Saved resume details are shown below. Refresh to confirm which resume is active.':' No new resume was confirmed.'));
+  setResumeFeedback('error','Resume upload failed',error.message+(savedResumeProfile?' Your saved resumes remain available in My resumes.':' No new resume was confirmed.'));
  }finally{
   resumeRevision++;
   setResumeBusy(false,pasted);
@@ -262,9 +270,9 @@ async function discover(){dmsg('Looking…');try{const j=await api('/api/dataset
  if(!j.links.length)dmsg('No files found automatically. Download from the USCIS H-1B Employer Data Hub page and upload them here.')}catch(e){dmsg(e.message)}}
 async function ingestUrl(u){u=u||$('#d_url').value;dmsg('Downloading…');try{const j=await api('/api/datasets/ingest',{url:u});dmsg(`Imported ${j.rows.toLocaleString()} rows (FY ${j.fiscal_years.join(', ')})`);loadData();status()}catch(e){dmsg(e.message)}}
 async function uploadData(){const f=$('#d_file').files[0];if(!f)return;const fd=new FormData();fd.append('file',f);dmsg('Importing…');try{const j=await api('/api/datasets/upload',fd,true);dmsg(`Imported ${j.rows.toLocaleString()} rows (FY ${j.fiscal_years.join(', ')})`);loadData();status()}catch(e){dmsg(e.message)}}
-async function refreshStatus(){try{await status()}catch(e){$('#connection').textContent='Waiting for the local app';$('#stat').textContent=e.message;}}
+async function refreshStatus(){try{await status()}catch(e){$('#connection').textContent='Waiting for the app';$('#stat').textContent=e.message;}}
 refreshStatus();setInterval(refreshStatus,5000);
-document.querySelectorAll('nav button').forEach(button=>button.addEventListener('click',()=>{const names={setup:'Your workspace',recs:'Recommendations',emps:'Employer directory',data:'Data library'};$('#page-title').textContent=names[button.dataset.t];}));
+document.querySelectorAll('nav button').forEach(button=>button.addEventListener('click',()=>{const names={setup:'Your workspace',resumes:'My resumes',recs:'Recommendations',emps:'Employer directory',data:'Data library'};$('#page-title').textContent=names[button.dataset.t];}));
 $('#rfile').addEventListener('change',onResumeSelected);
 $('#e_q').addEventListener('keydown',e=>{if(e.key==='Enter')loadEmps();});
 
@@ -273,4 +281,5 @@ $('#e_q').addEventListener('keydown',e=>{if(e.key==='Enter')loadEmps();});
 </script>
 </body>
 </html>
+
 
