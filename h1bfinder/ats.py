@@ -198,7 +198,12 @@ def smartrecruiters(sess, slug):
                 continue
             seen.add(ident)
             added += 1
-            detail = _get_json(sess, f"{base}/{ident}")
+            name = name or (posting.get("company") or {}).get("name")
+            # Postings can expire between the listing and detail requests.
+            # Skip confirmed removals; other failures still preserve the old cache.
+            detail = _get_json(sess, f"{base}/{ident}", allow_missing=True)
+            if detail is None:
+                continue
             if not isinstance(detail, dict):
                 raise BoardRequestError("Malformed SmartRecruiters details")
             name = name or (posting.get("company") or {}).get("name")
@@ -349,4 +354,5 @@ class Scanner:
                                 int(j["is_us"] if "is_us" in j else is_us_location(j["location"])),
                                 j["url"], j["description"], j["department"], j["posted"], now)
                                for j in jobs])
+
 

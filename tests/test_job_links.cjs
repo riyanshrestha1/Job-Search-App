@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const html=fs.readFileSync(path.join(__dirname,'../h1bfinder/templates/index.html'),'utf8');
+new vm.Script(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
+const start=html.indexOf('function jobUrl('),end=html.indexOf('let jobPage=',start);
+const c={URL,esc:s=>String(s).replace(/[&<>"]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x]))};
+vm.createContext(c);vm.runInContext(html.slice(start,end),c);
+assert.equal(c.jobUrl('javascript:alert(1)'),null);
+assert.equal(c.jobUrl(null),null);
+assert.equal(c.jobUrl('/relative'),null);
+assert.equal(c.jobUrl('https://user:password@example.com'),null);
+assert.match(c.applyLink('https://jobs.lever.co/acme/123'),/View job &amp; apply/);
+assert.match(c.applyLink('https://jobs.lever.co/acme/123'),/rel="noopener noreferrer"/);
+assert.match(c.applyLink(null),/Application link unavailable/);
+assert.ok(html.includes('id="view-jobs"'));
+assert.ok(html.includes('data-t="jobs"'));
+console.log('Application-link safety and template syntax checks passed');
