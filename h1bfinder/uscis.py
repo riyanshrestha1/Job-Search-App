@@ -5,6 +5,7 @@ import pandas as pd
 import requests
 
 from .names import normalize
+from .dataset_download import download, validate_url
 
 DATA_HUB_PAGES = [
     "https://www.uscis.gov/tools/reports-and-studies/h-1b-employer-data-hub/h-1b-employer-data-hub-files",
@@ -116,10 +117,9 @@ def ingest_path(conn, path: str | Path, source: str | None = None) -> dict:
 
 
 def ingest_url(conn, url: str) -> dict:
-    r = requests.get(url, headers=UA, timeout=120)
-    r.raise_for_status()
+    data = download(url)
     fname = url.split("?")[0].rsplit("/", 1)[-1] or "dataset.csv"
-    return ingest_bytes(conn, r.content, fname, source=f"url:{fname}", url=url)
+    return ingest_bytes(conn, data, fname, source=f"url:{fname}", url=url)
 
 
 def discover_links() -> list[dict]:
@@ -128,14 +128,17 @@ def discover_links() -> list[dict]:
     found: dict[str, dict] = {}
     for page in DATA_HUB_PAGES:
         try:
-            r = requests.get(page, headers=UA, timeout=30)
-            r.raise_for_status()
+            page_html = download(page, dataset=False).decode('utf-8', errors='replace')
         except Exception:
             continue
-        for a in BeautifulSoup(r.text, "html.parser").find_all("a", href=True):
+        for a in BeautifulSoup(page_html, "html.parser").find_all("a", href=True):
             href = a["href"]
             if re.search(r"\.(csv|xlsx|xls|zip)(\?|$)", href, re.I):
                 url = requests.compat.urljoin(page, href)
+                try:
+                    validate_url(url)
+                except ValueError:
+                    continue
                 m = re.search(r"(20\d{2})", a.get_text(" ") + " " + href)
                 found[url] = {"url": url, "label": a.get_text(" ", strip=True) or url.rsplit("/", 1)[-1],
                               "fy": int(m.group(1)) if m else None}
@@ -144,8 +147,8 @@ def discover_links() -> list[dict]:
             for pat in GUESS_PATTERNS:
                 url = pat.format(fy=fy)
                 try:
-                    if requests.head(url, headers=UA, timeout=15, allow_redirects=True).status_code == 200:
-                        found[url] = {"url": url, "label": f"H-1B Employer Data Hub FY{fy}", "fy": fy}
+                    download(url, head=True)
+                    found[url] = {"url": url, "label": f"H-1B Employer Data Hub FY{fy}", "fy": fy}
                 except Exception:
                     pass
     return sorted(found.values(), key=lambda d: -(d["fy"] or 0))
