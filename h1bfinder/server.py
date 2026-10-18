@@ -80,6 +80,48 @@ def employers():
                               "new_app_latest", "sponsor_score", "has_jobs"]))
 
 
+@app.get('/api/jobs')
+def job_listings():
+    """Browse the shared job cache without requiring a resume or ranking filters."""
+    from urllib.parse import urlsplit
+    a = request.args
+    try:
+        page = max(1, int(a.get('page', 1)))
+        limit = max(1, min(100, int(a.get('limit', 25))))
+    except ValueError:
+        return jsonify(error='Page and limit must be whole numbers.'), 400
+    # Aggregate names before joining so multiple filing years cannot duplicate jobs.
+    source = '''FROM jobs j LEFT JOIN
+        (SELECT norm, MIN(name) AS name FROM filings GROUP BY norm) e ON e.norm=j.norm'''
+    where, values = [], []
+    if a.get('q', '').strip():
+        where.append('(instr(lower(j.title),?)>0 OR instr(lower(COALESCE(e.name,j.norm)),?)>0)')
+        values.extend([a['q'].strip().lower()] * 2)
+    if a.get('location', '').strip():
+        where.append('instr(lower(j.location),?)>0')
+        values.append(a['location'].strip().lower())
+    if a.get('us_only') == '1':
+        where.append('j.is_us=1')
+    clause = ' WHERE ' + ' AND '.join(where) if where else ''
+    total = conn.execute('SELECT COUNT(*) ' + source + clause, values).fetchone()[0]
+    pages = max(1, (total + limit - 1) // limit)
+    page = min(page, pages)
+    rows = conn.execute('''SELECT j.uid,j.title,j.location,j.url,j.provider,j.department,j.posted,
+        COALESCE(e.name,j.norm) AS employer ''' + source + clause +
+        ' ORDER BY j.fetched_at DESC,j.uid LIMIT ? OFFSET ?', values + [limit, (page-1)*limit]).fetchall()
+    results = []
+    for row in rows:
+        item = dict(row)
+        try:
+            parsed = urlsplit((item['url'] or '').strip())
+            valid = parsed.scheme.lower() in ('http', 'https') and bool(parsed.hostname) and not parsed.username and not parsed.password
+        except ValueError:
+            valid = False
+        item['url'] = item['url'].strip() if valid else None
+        results.append(item)
+    return jsonify(results=results, total=total, page=page, pages=pages, limit=limit)
+
+
 @app.get("/api/employer/<norm>")
 def employer(norm):
     jobs = [dict(r) for r in conn.execute(
@@ -194,4 +236,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

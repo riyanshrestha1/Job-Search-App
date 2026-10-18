@@ -23,7 +23,8 @@
 .resume-status{margin:0 0 14px;padding:13px 15px;border:1px solid #dce5d5;background:#f7faf2;border-radius:10px;display:flex;gap:10px;align-items:flex-start;font-size:12px;line-height:1.6;color:#4f6542}
 .resume-status strong{display:block;font-size:12px}.resume-status p{margin:3px 0 0;font-size:11px;color:inherit}.resume-status[data-state="success"]{background:#ecf8ef;border-color:#a8d1b2;color:#215f34}.resume-status[data-state="error"]{background:#fff1ef;border-color:#edb9ae;color:#983e2f}.resume-status[data-state="uploading"]{background:#eff5ff;border-color:#bfd1ee;color:#355c8c}.resume-status[data-state="selected"]{background:#fff9e9;border-color:#e9d798;color:#806321}.resume-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;background:#eef1e9;color:#75816c;margin-top:6px}.resume-badge[data-saved="true"]{background:#dff2e3;color:#27683b}.resume-next{margin:10px 0 0;font-size:11px;color:#58774a}#rprof{font-size:11px}#rprof .resume-detail{display:block;margin:5px 0 8px;line-height:1.7}[hidden]{display:none!important}
 #logout-button{margin-top:12px}#resume-preview{width:min(750px,92vw);max-height:85vh;border:1px solid #dce5d5;border-radius:16px;padding:24px}#resume-preview::backdrop{background:#19362888}#preview-text{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.7 system-ui;max-height:55vh;overflow:auto}.resume-card h3{overflow-wrap:anywhere}.resume-card .row{align-items:center}.resume-card p{font-size:12px}.resume-card a{font-size:12px}.resume-card .active-label{color:#286343;font-weight:700}#library-message{color:#805422}
-.sidebar{overflow-y:auto}.sidebar-foot{flex-shrink:0}.sidebar nav{flex-shrink:0}#resumes .page-heading{display:block}#resumes .page-heading p{margin-top:8px}#resume-preview h2{overflow-wrap:anywhere}@media(max-width:580px){.sidebar nav{grid-template-columns:repeat(5,minmax(0,1fr))}.sidebar-foot{display:block;position:absolute;top:6px;right:18px}.sidebar-foot .local-user{display:none}#logout-button{font-size:10px;padding:6px 10px;min-height:30px}.connection:after{content:'Workspace'}}</style>
+.sidebar{overflow-y:auto}.sidebar-foot{flex-shrink:0}.sidebar nav{flex-shrink:0}#resumes .page-heading{display:block}#resumes .page-heading p{margin-top:8px}#resume-preview h2{overflow-wrap:anywhere}@media(max-width:580px){.sidebar nav{grid-template-columns:repeat(3,minmax(0,1fr))}.sidebar-foot{display:block;position:absolute;top:6px;right:18px}.sidebar-foot .local-user{display:none}#logout-button{font-size:10px;padding:6px 10px;min-height:30px}.connection:after{content:'Workspace'}}.listing-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px}.listing-actions span{font-size:11px;color:#72806b}.listing-card h3{font-size:17px;margin:0 0 7px;overflow-wrap:anywhere}.listing-card p{font-size:12px;overflow-wrap:anywhere}.listing-card a{text-decoration:none}.listing-card .apply-link{margin-top:12px}#job-count{font-size:12px;color:#62715d}#scan-error-detail{overflow-wrap:anywhere}#job-pages{justify-content:center}
+</style>
 </head>
 <body>
 <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>
@@ -47,6 +48,7 @@
  <div class="nav-label">WORKSPACE</div>
  <nav aria-label="Main navigation">
   <button data-t="setup" class="on" title="Overview"><svg><use href="#i-grid"/></svg><span>Overview</span><span class="nav-arrow">↗</span></button>
+  <button data-t="jobs" title="Job listings"><svg><use href="#i-briefcase"/></svg><span>Job listings</span></button>
   <button data-t="recs" title="Recommendations"><svg><use href="#i-spark"/></svg><span>Matches</span></button>
   <button data-t="emps" title="Employer directory"><svg><use href="#i-building"/></svg><span>Employers</span></button>
   <button data-t="data" title="USCIS data"><svg><use href="#i-database"/></svg><span>USCIS data</span></button>
@@ -84,16 +86,23 @@
     <div class="card"><div class="card-heading"><span class="step">02</span><div><h3>Find your opportunities</h3><p>Choose where to look. We’ll take it from here.</p></div></div>
      <div class="form-grid"><div><label class="field-label" for="s_n">Employers to explore</label><input id="s_n" type="number" min="1" value="1000"></div><div><label class="field-label" for="s_ind">Industry</label><select id="s_ind"><option value="">Any industry</option></select></div><div><label class="field-label" for="s_state">Employer state</label><select id="s_state"><option value="">Any state</option></select></div><div><label class="field-label" for="s_min">Minimum H-1B approvals</label><input id="s_min" type="number" min="0" value="3"></div></div>
      <div class="scan-actions"><label class="check-label"><input type="checkbox" id="s_ref">Refresh cached results</label><div style="display:flex;gap:8px"><button class="s" onclick="api('/api/scan/cancel',{}).then(refreshStatus).catch(e=>alert(e.message))">Stop</button><button class="p" onclick="startScan()"><svg class="button-icon"><use href="#i-play"/></svg>Start scan</button></div></div>
-     <div id="scan" class="scan-progress" aria-live="polite"><div class="progress-heading"><span><i></i>Your discovery progress</span><span>Public job boards</span></div><div class="bar"><i id="scanbar" style="width:0"></i></div><div id="scantxt">Ready when you are. Start a scan to discover open roles.</div></div>
+     <div id="scan" class="scan-progress" aria-live="polite"><div class="progress-heading"><span><i></i>Your discovery progress</span><span>Public job boards</span></div><div class="bar"><i id="scanbar" style="width:0"></i></div><div id="scantxt">Ready when you are. Start a scan to discover open roles.</div><div class="listing-actions"><button class="p" id="view-jobs" onclick="openJobs()">View job listings</button><span id="saved-job-count">Browse saved jobs and application links.</span></div><details id="scan-warning" hidden><summary id="scan-warning-summary">Some sources could not be refreshed</summary><p>Successfully saved jobs are still available. Cached listings can include jobs that have since closed.</p><p id="scan-error-detail"></p></details></div>
     </div>
    </div>
    <div class="source-strip"><span>Connecting you with opportunities on</span><b>greenhouse</b><b>lever ↗</b><b>ashby</b><b>SmartRecruiters</b></div>
   </section>
 
   <section id="resumes"><div class="page-heading"><h1>My resumes</h1><p>Keep your story up to date. Choose the resume used for job matching.</p></div><div class="card"><div class="row"><button class="p" onclick="document.querySelector('[data-t=setup]').click();document.querySelector('#rfile').focus()">Upload a new resume</button><span class="mute">PDF, DOCX or TXT · Up to 10 MB · 20 resumes per account</span></div></div><p id="library-message" role="status"></p><div id="resume-list"></div><dialog id="resume-preview"><h2 id="preview-title"></h2><pre id="preview-text"></pre><button class="s" onclick="document.querySelector('#resume-preview').close()">Close</button></dialog></section>
-<section id="recs">
+<section id="jobs">
+   <div class="page-heading"><div><div class="eyebrow">FROM DISCOVERY TO YOUR NEXT STEP</div><h1>Explore the openings.</h1><p>Browse saved jobs and open the employer’s page to apply. No resume required.</p></div></div>
+   <form class="card filter-card" id="job-search"><div class="row"><div class="field"><label class="field-label" for="j_q">Job title or company</label><input id="j_q" placeholder="Software engineer, company name…"></div><div class="field"><label class="field-label" for="j_location">Job location</label><input id="j_location" placeholder="City, state or remote"></div><label class="check-label"><input type="checkbox" id="j_us">US locations only</label><button class="p" type="submit">Search jobs</button><button class="s" type="button" onclick="clearJobFilters()">Clear filters</button></div></form>
+   <p class="section-intro">These are jobs saved from public boards, across your scans. Availability and sponsorship must be confirmed on the employer’s site.</p>
+   <p id="job-count" role="status" aria-live="polite"></p><div id="job-list"></div><div class="listing-actions" id="job-pages" hidden><button class="s" id="jobs-prev" onclick="loadJobs(jobPage-1)">Previous</button><span id="job-page-label"></span><button class="s" id="jobs-next" onclick="loadJobs(jobPage+1)">Next</button></div>
+  </section>
+  <section id="recs">
    <div class="page-heading"><div><div class="eyebrow">EXPERIENCE, MEET OPPORTUNITY</div><h1>Find the roles that fit.</h1><p>Openings ranked around your skills, experience and employer sponsorship history.</p></div><div class="outline-tag"><svg><use href="#i-spark"/></svg>Made for your next move</div></div>
-   <div class="card filter-card"><div class="row"><div class="field keyword-field"><label class="field-label" for="r_kw">What do you want to do?</label><input id="r_kw" placeholder="Data engineer, product designer…"></div><div class="field"><label class="field-label" for="r_state">Job location</label><select id="r_state"><option value="">Anywhere</option></select></div><label class="check-label"><input type="checkbox" id="r_nos" checked>Hide no-sponsorship roles</label><button class="p" onclick="loadRecs()"><svg class="button-icon"><use href="#i-search"/></svg>Find matches</button></div></div>
+   <div class="card filter-card"><div class="row"><div class="field keyword-field"><label class="field-label" for="r_kw">What do you want to do?</label><input id="r_kw" placeholder="Data engineer, product designer…"></div><div class="field"><label class="field-label" for="r_state">Job location</label><select id="r_state"><option value="">Anywhere</option></select></div><label class="check-label"><input type="checkbox" id="r_us" checked>US locations only</label><label class="check-label"><input type="checkbox" id="r_nos" checked>Hide no-sponsorship roles</label><button class="p" onclick="loadRecs()"><svg class="button-icon"><use href="#i-search"/></svg>Find matches</button></div></div>
+   <p id="match-context" class="section-intro">Matches rank saved jobs using the resume marked active in My resumes. Scores help compare jobs; they are not hiring probabilities.</p>
    <div id="recout"><div class="empty-state"><div class="empty-icon"><svg><use href="#i-spark"/></svg></div><h3>A new possibility is waiting.</h3><p>Add your resume and scan employers from the Overview tab. Your personalized matches will appear here.</p></div></div>
   </section>
 
@@ -140,7 +149,7 @@ const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>
 async function api(u,body,form){const o=body===undefined?{}:form?{method:'POST',body}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
  await authReady;o.headers={...(o.headers||{}),'X-CSRF-Token':csrf};const r=await fetch(u,o);if(r.status===401){location.replace('/login');throw new Error('Please sign in.');}const j=await r.json().catch(()=>({error:'bad response'}));if(!r.ok)throw new Error(j.error||r.statusText);return j}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,section').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#'+b.dataset.t).classList.add('on');
- if(b.dataset.t=='resumes')loadResumes();if(b.dataset.t=='recs')loadRecs();if(b.dataset.t=='emps')loadEmps();if(b.dataset.t=='data')loadData()});
+ if(b.dataset.t==='jobs')loadJobs();if(b.dataset.t=='resumes')loadResumes();if(b.dataset.t=='recs')loadRecs();if(b.dataset.t=='emps')loadEmps();if(b.dataset.t=='data')loadData()});
 let facetsDone='';
 let resumeBusy=false, resumeRevision=0, savedResumeProfile=null, resumeFeedback='initial';
 async function status(){const revision=resumeRevision;const s=await api('/api/status');
@@ -153,7 +162,12 @@ for(const id of ['#s_state','#e_state','#r_state'])s.facets.states.forEach(x=>$(
   for(const id of ['#s_ind','#e_ind'])s.facets.industries.forEach(x=>$(id).add(new Option(x,x.split(' ')[0])));for(const id of ['#s_state','#e_state','#r_state','#s_ind','#e_ind']){const select=$(id);if([...select.options].some(o=>o.value===select.dataset.previous))select.value=select.dataset.previous;}}
 
  const c=s.scan;if(c.total){$('#scan').style.display='block';$('#scanbar').style.width=(100*c.done/c.total)+'%';
-  $('#scantxt').textContent=`${c.running?(c.cancel?'Stopping':'Scanning'):(c.cancel?'Stopped':'Done')}: ${c.done}/${c.total} employers · ${c.boards} boards found · ${c.jobs} openings`+(c.error?' · error: '+c.error:'')}
+  $('#scantxt').textContent=`${c.running?(c.cancel?'Stopping':'Scanning'):(c.cancel?'Stopped':c.error&&c.done<c.total?'Interrupted':'Done')}: ${c.done}/${c.total} employers · ${c.boards} boards found · ${c.jobs} openings`}
+ $('#view-jobs').textContent='View job listings';
+ $('#saved-job-count').textContent=s.jobs.toLocaleString()+' saved jobs available to browse';
+ $('#scan-warning').hidden=!c.error;
+ $('#scan-warning-summary').textContent=c.failed?c.failed+(c.failed===1?' employer scan had an issue':' employer scans had issues')+' — saved jobs are available':'Scan issue — saved jobs are available';
+ $('#scan-error-detail').textContent=c.error||'';
  return s}
 // Resume feedback is only shown for a user action, never by status polling.
 let feedbackTimer;
@@ -218,17 +232,38 @@ async function startScan(){try{const topN=Number($('#s_n').value),minimum=Number
  if(!Number.isInteger(topN)||topN<1)throw new Error('Choose a positive whole number of employers.');
  if(!Number.isInteger(minimum)||minimum<0)throw new Error('Minimum approvals must be zero or a positive whole number.');
  await api('/api/scan',{top_n:+$('#s_n').value,industry:$('#s_ind').value,state:$('#s_state').value,min_approvals:+$('#s_min').value,refresh:$('#s_ref').checked});await status()}catch(e){alert(e.message)}}
+// Shared listing links: allow only complete HTTP(S) URLs from public providers.
+function jobUrl(value){try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password?u.href:null;}catch{return null;}}
+function applyLink(value){const url=jobUrl(value);return url?`<a class="p apply-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">View job &amp; apply ↗</a>`:'<span class="chip">Application link unavailable</span>';}
+let jobPage=1,jobRequest=0,jobFilters={q:'',location:'',us_only:'0'};
+function openJobs(){document.querySelector('[data-t="jobs"]').click();$('#jobs').scrollIntoView({block:'start'});}
+function clearJobFilters(){$('#j_q').value='';$('#j_location').value='';$('#j_us').checked=false;loadJobs();}
+async function loadJobs(page=1){
+ const revision=++jobRequest;
+ if(page===1)jobFilters={q:$('#j_q').value.trim(),location:$('#j_location').value.trim(),us_only:$('#j_us').checked?'1':'0'};
+ $('#job-count').textContent='Loading saved jobs…';$('#job-list').replaceChildren();$('#job-pages').hidden=true;
+ try{const d=await api('/api/jobs?'+new URLSearchParams({...jobFilters,page,limit:25}));if(revision!==jobRequest)return;
+ jobPage=d.page;$('#job-count').textContent=d.total?`${((d.page-1)*d.limit+1).toLocaleString()}–${Math.min(d.page*d.limit,d.total).toLocaleString()} of ${d.total.toLocaleString()} jobs`:'No jobs match this search.';
+ if(!d.results.length){$('#job-list').innerHTML='<div class="empty-state"><h3>No listings to show yet.</h3><p>Clear your filters or start an employer scan on Overview. You can browse jobs while a scan is running.</p></div>';return;}
+ $('#job-list').innerHTML=d.results.map(j=>`<article class="card listing-card"><h3>${esc(j.title||'Untitled role')}</h3><p><strong>${esc(j.employer)}</strong> · ${esc(j.location||'Location not provided')}</p><p class="mute">${esc(j.provider)}${j.department?' · '+esc(j.department):''}${j.posted?' · Posted '+esc(j.posted):''}</p>${applyLink(j.url)}</article>`).join('');
+ $('#job-pages').hidden=d.pages<=1;$('#jobs-prev').disabled=d.page<=1;$('#jobs-next').disabled=d.page>=d.pages;$('#job-page-label').textContent=`Page ${d.page} of ${d.pages}`;
+ }catch(e){if(revision!==jobRequest)return;$('#job-count').textContent='Could not load jobs.';$('#job-list').textContent=e.message;}
+}
+$('#job-search').addEventListener('submit',e=>{e.preventDefault();loadJobs();});
+// End listing browser.
+
 async function loadRecs(){$('#recout').innerHTML='<p class=mute>Ranking…</p>';
- try{const p=new URLSearchParams({keywords:$('#r_kw').value,state:$('#r_state').value,hide_no_sponsor:$('#r_nos').checked?1:0});
+ try{const p=new URLSearchParams({keywords:$('#r_kw').value,state:$('#r_state').value,us_only:$('#r_us').checked?1:0,hide_no_sponsor:$('#r_nos').checked?1:0});
   const j=await api('/api/recommendations?'+p);
-  if(!j.results.length){$('#recout').innerHTML='<div class="empty-state"><div class="empty-icon"><svg><use href="#i-spark"/></svg></div><h3>Your next possibility is still out there.</h3><p>Upload your resume and scan employers on the Overview tab. You can also broaden your filters to explore more opportunities.</p></div>';return}
+  $('#match-context').textContent='Matching with '+(j.profile.name||'your active resume')+'. Change it in My resumes. Scores compare job fit, not hiring probability.';
+  if(!j.results.length){$('#recout').innerHTML='<div class="empty-state"><h3>No matches under these filters.</h3><p>Try another location or turn off the US-only and sponsorship filters. If no jobs have been saved yet, start a scan on Overview.</p><button class="p" style="margin-top:16px" onclick="openJobs()">Browse all job listings</button></div>';return}
   $('#recout').innerHTML=`<p class=mute>${j.results.length} best matches out of ${j.pool.toLocaleString()} openings</p>`+j.results.map(r=>`<div class="card job">
    <div class=score>${Math.round(r.score)}<small>match</small></div><div>
-   <h3><a href="${esc(r.url)}" target=_blank rel=noopener>${esc(r.title)}</a></h3>
+   <h3>${esc(r.title)}</h3>
    <div class=mute>${esc(r.employer)} · ${esc(r.location)||'location n/a'}${r.department?' · '+esc(r.department):''}</div>
    <div><span class="chip ok">H-1B: ${r.h1b_approvals??0} approvals (${r.h1b_new_latest??0} new this FY)</span>${r.flags.map(f=>`<span class="chip warn">${esc(f)}</span>`).join('')}</div>
-   <div>${r.skills_matched.map(x=>`<span class="chip ok">✓ ${esc(x)}</span>`).join('')}${r.skills_missing.map(x=>`<span class=chip>${esc(x)}</span>`).join('')}</div></div></div>`).join('')
- }catch(e){$('#recout').innerHTML=`<div class=card>${esc(e.message)}</div>`}}
+   <div>${r.skills_matched.map(x=>`<span class="chip ok">✓ ${esc(x)}</span>`).join('')}${r.skills_missing.map(x=>`<span class=chip>${esc(x)}</span>`).join('')}</div>${applyLink(r.url)}</div></div>`).join('')
+ }catch(e){$('#recout').innerHTML=e.message==='Upload your resume first.'?'<div class="empty-state"><h3>Choose a resume to see your matches.</h3><p>Upload a resume on Overview, or choose an active resume in My resumes. You can browse Job listings without a resume.</p><button class="p" style="margin-top:16px" onclick="document.querySelector(\'[data-t=resumes]\').click()">Open My resumes</button><button class="s" style="margin:16px 0 0 8px" onclick="openJobs()">Browse job listings</button></div>':`<div class=card>${esc(e.message)}</div>`}}
 async function loadEmps(){try{const p=new URLSearchParams({q:$('#e_q').value,state:$('#e_state').value,industry:$('#e_ind').value,has_jobs:$('#e_jobs').checked?1:0});
  const employers=await api('/api/employers?'+p),table=$('#etbl');
  table.innerHTML='<thead><tr><th>Employer</th><th>Location</th><th>Industry</th><th>Approvals</th><th>New this FY</th><th>Years</th><th>Openings</th></tr></thead>';
@@ -241,7 +276,7 @@ async function loadEmps(){try{const p=new URLSearchParams({q:$('#e_q').value,sta
  }catch(e){$('#edetail').textContent=e.message;}}
 async function showEmp(n){const j=await api('/api/employer/'+encodeURIComponent(n));
  $('#edetail').innerHTML=`<div class=card><b>${esc(n)}</b><table><tr><th>FY<th>New<th>Continuing<th>Other<th>Denials</tr>`+j.history.map(h=>`<tr><td>${h.fy}<td>${h.new_app}<td>${h.cont_app}<td>${h.other_app}<td>${h.new_den+h.cont_den+h.other_den}</tr>`).join('')+'</table>'+
- (j.jobs.length?'<p><b>Openings</b></p>'+j.jobs.map(x=>`<div><a href="${esc(x.url)}" target=_blank>${esc(x.title)}</a> <span class=mute>${esc(x.location)}</span></div>`).join(''):'<p class=mute>No openings scanned yet.</p>')+'</div>';$('#edetail').scrollIntoView()}
+ (j.jobs.length?'<p><b>Openings</b></p>'+j.jobs.map(x=>`<div><strong>${esc(x.title)}</strong> <span class=mute>${esc(x.location)}</span> ${applyLink(x.url)}</div>`).join(''):'<p class=mute>No openings scanned yet.</p>')+'</div>';$('#edetail').scrollIntoView()}
 async function loadData(){
  const j=await api('/api/datasets'), table=$('#dtbl');
  table.innerHTML='<tr><th>Source</th><th>Rows</th><th>Fiscal years</th><th></th></tr>';
@@ -272,7 +307,7 @@ async function ingestUrl(u){u=u||$('#d_url').value;dmsg('Downloading…');try{co
 async function uploadData(){const f=$('#d_file').files[0];if(!f)return;const fd=new FormData();fd.append('file',f);dmsg('Importing…');try{const j=await api('/api/datasets/upload',fd,true);dmsg(`Imported ${j.rows.toLocaleString()} rows (FY ${j.fiscal_years.join(', ')})`);loadData();status()}catch(e){dmsg(e.message)}}
 async function refreshStatus(){try{await status()}catch(e){$('#connection').textContent='Waiting for the app';$('#stat').textContent=e.message;}}
 refreshStatus();setInterval(refreshStatus,5000);
-document.querySelectorAll('nav button').forEach(button=>button.addEventListener('click',()=>{const names={setup:'Your workspace',resumes:'My resumes',recs:'Recommendations',emps:'Employer directory',data:'Data library'};$('#page-title').textContent=names[button.dataset.t];}));
+document.querySelectorAll('nav button').forEach(button=>button.addEventListener('click',()=>{const names={setup:'Your workspace',jobs:'Job listings',resumes:'My resumes',recs:'Recommendations',emps:'Employer directory',data:'Data library'};$('#page-title').textContent=names[button.dataset.t];}));
 $('#rfile').addEventListener('change',onResumeSelected);
 $('#e_q').addEventListener('keydown',e=>{if(e.key==='Enter')loadEmps();});
 
@@ -281,5 +316,6 @@ $('#e_q').addEventListener('keydown',e=>{if(e.key==='Enter')loadEmps();});
 </script>
 </body>
 </html>
+
 
 
