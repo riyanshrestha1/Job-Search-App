@@ -91,6 +91,8 @@ def main():
                  headers={'X-CSRF-Token':csrf}).status_code == 200, 'create account')
     csrf = c.get('/api/auth/session').get_json()['csrf']
     c.environ_base['HTTP_X_CSRF_TOKEN'] = csrf
+    from h1bfinder.admin import set_admin
+    set_admin(conn, 'smoke-user', True)
     check(c.get("/").status_code == 200, "index page")
     check(c.get("/api/status").get_json()["employers"] > 40000, "status")
     check(c.post("/api/resume", json={"text": text}).status_code == 200, "resume upload")
@@ -104,4 +106,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

@@ -115,9 +115,9 @@
   <section id="data">
    <div class="page-heading"><div><div class="eyebrow">BETTER CONTEXT. MORE CONFIDENCE.</div><h1>The data behind your search.</h1><p>Build a fuller picture of employer sponsorship by adding USCIS fiscal years.</p></div><div class="outline-tag"><svg><use href="#i-database"/></svg>Shared employer data</div></div>
    <div class="card table-card"><div class="table-title"><h3>Your datasets</h3><span>Merged by employer name</span></div><table id="dtbl"></table></div>
-   <div class="card"><div class="card-heading"><span class="step"><svg style="width:15px;height:15px"><use href="#i-database"/></svg></span><div><h3>Expand your library</h3><p>Find official datasets, import a link, or add a file of your own.</p></div></div><div class="dataset-grid">
+   <p id="dataset-access" class="section-intro"></p><div class="card" id="dataset-controls" hidden><div class="card-heading"><span class="step"><svg style="width:15px;height:15px"><use href="#i-database"/></svg></span><div><h3>Expand your library</h3><p>Find official datasets, import a link, or add a file of your own.</p></div></div><div class="dataset-grid">
     <div class="dataset-box"><h3>Discover official files</h3><p>Look for available fiscal years on the USCIS H-1B Employer Data Hub.</p><button class="s" onclick="discover()"><svg class="button-icon"><use href="#i-search"/></svg>Find USCIS datasets</button><div id="dlinks"></div></div>
-    <div class="dataset-box"><h3>Import from a link</h3><p>Already have a dataset URL? Add it directly.</p><div class="row"><div class="field"><label class="field-label" for="d_url">Dataset URL</label><input id="d_url" type="url" placeholder="https://www.uscis.gov/…csv"></div><button class="s" onclick="ingestUrl()">Import URL <svg class="button-icon"><use href="#i-arrow"/></svg></button></div></div>
+    <div class="dataset-box"><h3>Import from a link</h3><p>Use a direct HTTPS file link from uscis.gov. Other sources can be uploaded as files.</p><div class="row"><div class="field"><label class="field-label" for="d_url">Dataset URL</label><input id="d_url" type="url" placeholder="https://www.uscis.gov/…csv"></div><button class="s" onclick="ingestUrl()">Import URL <svg class="button-icon"><use href="#i-arrow"/></svg></button></div></div>
     <div class="dataset-box"><h3>Upload a dataset</h3><p>Add a CSV, XLSX or ZIP file with an employer-name column.</p><div class="row"><div class="field"><label class="field-label" for="d_file">Dataset file</label><input type="file" id="d_file" accept=".csv,.xlsx,.zip"></div><button class="s" onclick="uploadData()"><svg class="button-icon"><use href="#i-upload"/></svg>Upload file</button></div></div>
    </div><div id="dmsg" aria-live="polite"></div><div class="data-note"><svg><use href="#i-shield"/></svg><span>H-1B approvals reflect past petitions, not current openings or a promise of sponsorship. Use this history as context as you explore each role.</span></div></div>
   </section>
@@ -125,8 +125,8 @@
  </main>
 </div>
 <script>
-let csrf='';
-const authReady=fetch('/api/auth/session').then(r=>{if(!r.ok)throw new Error('Unable to load your session.');return r.json()}).then(d=>{if(!d.user){location.replace('/login');throw new Error('Please sign in.');}csrf=d.csrf;document.querySelector('#account-name').textContent=d.user.username;});
+let csrf='',isAdmin=false;
+const authReady=fetch('/api/auth/session').then(r=>{if(!r.ok)throw new Error('Unable to load your session.');return r.json()}).then(d=>{if(!d.user){location.replace('/login');throw new Error('Please sign in.');}csrf=d.csrf;isAdmin=!!d.user.is_admin;document.querySelector('#account-name').textContent=d.user.username;});
 async function logout(){try{await api('/api/auth/logout',{});location.replace('/login');}catch(e){alert(e.message);}}
 async function loadResumes(){
  const list=document.querySelector('#resume-list');list.textContent='Loading your resumes…';
@@ -279,13 +279,14 @@ async function showEmp(n){const j=await api('/api/employer/'+encodeURIComponent(
  (j.jobs.length?'<p><b>Openings</b></p>'+j.jobs.map(x=>`<div><strong>${esc(x.title)}</strong> <span class=mute>${esc(x.location)}</span> ${applyLink(x.url)}</div>`).join(''):'<p class=mute>No openings scanned yet.</p>')+'</div>';$('#edetail').scrollIntoView()}
 async function loadData(){
  const j=await api('/api/datasets'), table=$('#dtbl');
+ $('#dataset-controls').hidden=!isAdmin;$('#dataset-access').textContent=isAdmin?'Administrator access: you can manage the shared employer datasets.':'Shared datasets are managed by an administrator. You can browse employers and scan for jobs.';
  table.innerHTML='<tr><th>Source</th><th>Rows</th><th>Fiscal years</th><th></th></tr>';
  for(const d of j.datasets){
   const row=table.insertRow();
   for(const value of [d.label,d.rows.toLocaleString(),d.fys])row.insertCell().textContent=value??'';
   const button=document.createElement('button');button.className='s';button.textContent='remove';
   button.onclick=()=>rmData(d.source).catch(e=>dmsg(e.message));
-  row.insertCell().append(button);
+  const actionCell=row.insertCell();if(isAdmin)actionCell.append(button);
  }
 }
 async function rmData(s){await api('/api/datasets/remove',{source:s});await loadData();await status()}
@@ -316,6 +317,7 @@ $('#e_q').addEventListener('keydown',e=>{if(e.key==='Enter')loadEmps();});
 </script>
 </body>
 </html>
+
 
 
 

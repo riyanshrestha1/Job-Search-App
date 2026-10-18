@@ -16,6 +16,7 @@ from . import resume as rs
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT UNIQUE NOT NULL,
  password_hash TEXT NOT NULL, active_resume_id INTEGER);
+CREATE TABLE IF NOT EXISTS administrators(user_id INTEGER PRIMARY KEY);
 CREATE TABLE IF NOT EXISTS resumes(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL,
  name TEXT NOT NULL, text TEXT NOT NULL, original BLOB, created_at REAL NOT NULL);
 CREATE INDEX IF NOT EXISTS ix_resumes_user ON resumes(user_id);
@@ -30,6 +31,10 @@ def active_resume(conn):
 
 def profile(row):
     return dict(rs.build_profile(row['text']), id=row['id'], name=row['name'], created_at=row['created_at'])
+
+def is_admin(conn):
+    return bool(g.user and conn.execute('SELECT 1 FROM administrators WHERE user_id=?',
+                                       (g.user['id'],)).fetchone())
 
 def install(app, conn):
     conn.executescript(SCHEMA)
@@ -56,6 +61,8 @@ def install(app, conn):
         if request.method not in ('GET', 'HEAD', 'OPTIONS') and not hmac.compare_digest(
                 request.headers.get('X-CSRF-Token', ''), session['csrf']):
             return jsonify(error='Your session changed. Refresh the page and try again.'), 403
+        if request.method not in ('GET', 'HEAD', 'OPTIONS') and request.path.startswith('/api/datasets/') and not is_admin(conn):
+            return jsonify(error='Only an administrator can change or import shared employer datasets.'), 403
 
     @app.after_request
     def private_response(response):
@@ -70,7 +77,7 @@ def install(app, conn):
 
     @app.get('/api/auth/session')
     def auth_session():
-        return jsonify(user={'username':g.user['username']} if g.user else None, csrf=session['csrf'])
+        return jsonify(user={'username':g.user['username'], 'is_admin':is_admin(conn)} if g.user else None, csrf=session['csrf'])
 
     @app.post('/api/auth/register')
     @app.post('/api/auth/login')
@@ -186,3 +193,4 @@ def save_resume(conn):
         conn.rollback()
         raise
     return jsonify(profile(conn.execute('SELECT * FROM resumes WHERE id=?',(cur.lastrowid,)).fetchone()))
+
